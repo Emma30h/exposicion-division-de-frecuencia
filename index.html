@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>División de Frecuencia · Cordobeses en Alerta</title>
+<link rel="icon" href="media/logo_ojo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0a1219; --panel:#101c26; --panel-2:#152330; --line:#22343f;
+  --fg:#e8eef2; --muted:#93a6b4; --faint:#5f7484;
+  --brand:#42ade8; --brand-soft:rgba(66,173,232,.14);
+  --signal:#e2a23b; --signal-soft:rgba(226,162,59,.14);
+  --ok:#3fbf6a;
+  /* frecuencias (mismos colores que el mapa) */
+  --f1:#3276c7; --f2:#79a8de; --f3:#ac7505; --f4:#cfa952; --f5:#b74873; --f6:#d087a6; --f7:#1c9144; --f8:#8564c3;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ---------- escenario 1600×900 ---------- */
+/* fixed: el escenario sin escalar no ensancha la página (en celulares hacía que el navegador achicara la vista) */
+#stage{position:fixed;left:50%;top:50%;width:1600px;height:900px;transform-origin:center center}
+.slide{position:absolute;inset:0;padding:96px 88px 84px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .45s ease}
+.slide.on{opacity:1;pointer-events:auto}
+.kicker{font-family:var(--f-mono);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:14px}
+h2{font-family:var(--f-display);font-weight:700;font-size:58px;line-height:1.04;letter-spacing:-.005em;margin-bottom:34px;max-width:1300px}
+.src{position:absolute;left:88px;bottom:44px;font-family:var(--f-mono);font-size:12.5px;color:var(--faint)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--fg)}
+.tag.b{color:var(--brand);border-color:rgba(66,173,232,.35)}
+.tag.a{color:var(--signal);border-color:rgba(226,162,59,.4)}
+b,strong{font-weight:600;color:var(--fg)}
+.muted{color:var(--muted)}
+.hl{color:var(--brand)}
+
+/* animación de entrada */
+/* backwards (no both): al terminar la entrada, manda la atenuación de los pasos [data-f] */
+.slide.play [data-a]{animation:rise .7s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--d,0)*70ms + 120ms)}
+/* sin opacity en "to": la entrada termina en la opacidad que le toca (tenue si su paso todavía no llegó) */
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{transform:none}}
+.slide [data-f]{transition:opacity .35s ease,filter .35s ease}
+.slide [data-f].dim{opacity:.16;filter:saturate(.2)}
+@media (prefers-reduced-motion:reduce){.slide.play [data-a]{animation:none}}
+
+/* ---------- portada / cierre ---------- */
+.cover{justify-content:center;overflow:hidden}
+.cover > *{position:relative;z-index:1}
+.cover > .bgimg{position:absolute;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;opacity:.32;filter:saturate(.6)}
+.cover > .veil{position:absolute;z-index:0;inset:0;background:linear-gradient(90deg,var(--bg) 18%,rgba(10,18,25,.82) 52%,rgba(10,18,25,.35))}
+.logo{width:120px;height:auto;margin-bottom:26px}
+.cover .inst{font-family:var(--f-mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:22px}
+.cover h1{font-family:var(--f-display);font-weight:700;font-size:118px;line-height:.92;text-transform:uppercase;letter-spacing:.005em}
+.cover .lead{font-size:28px;margin-top:30px;max-width:900px}
+.cover .meta{font-family:var(--f-mono);font-size:14px;letter-spacing:.12em;color:var(--muted);margin-top:22px;text-transform:uppercase}
+.cover .meta span+span{margin-left:28px}
+.badge{display:inline-flex;align-items:center;gap:14px;font-family:var(--f-mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);border:1px solid rgba(226,162,59,.45);background:var(--signal-soft);padding:9px 14px;border-radius:6px;margin-bottom:28px;width:max-content}
+.close-row{display:flex;gap:56px;margin-top:34px}
+.close-row div{font-family:var(--f-display);font-weight:700;font-size:54px;line-height:1}
+.close-row small{display:block;font-family:var(--f-body);font-weight:500;font-size:16px;color:var(--muted);margin-top:6px}
+
+/* ---------- 2 · por qué ---------- */
+.why{display:grid;grid-template-columns:640px 1fr;gap:56px;align-items:start}
+.bullets{list-style:none;display:flex;flex-direction:column;gap:18px}
+.bullets li{font-size:22px;line-height:1.45;color:var(--muted);padding-left:26px;position:relative}
+.bullets li::before{content:"";position:absolute;left:0;top:14px;width:12px;height:2px;background:var(--brand)}
+.kgrid{display:grid;grid-template-columns:1fr;gap:16px}
+.k{padding:24px 28px;display:grid;grid-template-columns:190px 1fr;gap:20px;align-items:center}
+.k .v{font-family:var(--f-display);font-weight:700;font-size:70px;line-height:1;color:var(--brand)}
+.k .v small{font-size:30px;margin-left:4px}
+.k .n{font-family:var(--f-display);font-weight:600;font-size:27px;line-height:1.1}
+.k .d{font-size:16.5px;color:var(--muted);margin-top:4px}
+.k.main{border-color:rgba(66,173,232,.55);background:linear-gradient(0deg,var(--brand-soft),var(--brand-soft)),var(--panel)}
+
+/* ---------- 3 · recorrido ---------- */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;position:relative;margin-top:60px}
+.steps::before{content:"";position:absolute;left:48px;right:120px;top:42px;border-top:1.5px dotted var(--line)}
+.step{position:relative}
+.step .ic{width:84px;height:84px;border-radius:50%;border:1.5px solid var(--brand);display:grid;place-items:center;color:var(--brand);background:var(--bg);margin-bottom:16px}
+.step.end .ic{border-color:var(--signal);color:var(--signal)}
+.step .no{font-family:var(--f-mono);font-size:13px;color:var(--brand);margin-bottom:6px}
+.step h4{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1.08;margin-bottom:10px}
+.step p{font-size:19px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+.roles{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;margin-top:30px}
+.role{border-top:2px solid;position:relative;padding-top:10px;font-family:var(--f-mono);font-size:13.5px;letter-spacing:.06em;text-transform:uppercase}
+.role::before,.role::after{content:"";position:absolute;top:-2px;width:2px;height:12px;background:currentColor}
+.role::before{left:0}.role::after{right:0}
+.role.cab{grid-column:2/4;color:var(--brand);border-color:var(--brand)}
+.role.rad{grid-column:4/5;color:var(--signal);border-color:var(--signal)}
+.role.mov{grid-column:5/6;color:var(--muted);border-color:var(--muted)}
+
+/* ---------- 4 / 8 · roles con foto ---------- */
+.rolegrid{display:grid;grid-template-columns:620px 1fr;gap:56px;align-items:start}
+.photo{width:620px;height:500px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.photo-cap{font-family:var(--f-mono);font-size:12.5px;color:var(--faint);margin-top:10px}
+.tasks{list-style:none;counter-reset:t;display:flex;flex-direction:column;gap:14px}
+.tasks li{counter-increment:t;display:grid;grid-template-columns:52px 1fr;gap:16px;align-items:start;padding:16px 20px}
+.tasks li::before{content:counter(t,decimal-leading-zero);font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1;color:var(--brand)}
+.tasks.r li::before{color:var(--signal)}
+.tasks h4{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.1}
+.tasks p{font-size:17px;color:var(--muted);line-height:1.45;margin-top:4px}
+.note{margin-top:16px;padding:16px 20px;border-left:3px solid var(--signal);background:var(--panel);font-size:18px;color:var(--muted);border-radius:0 8px 8px 0}
+
+/* ---------- cabina / radio: video de fondo que alterna clips (como la portada de la exposición CeA) ---------- */
+.vrole{padding:0;overflow:hidden}
+.vrole .reel{position:absolute;inset:0;background:#05090d}
+.vrole .cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+.vrole .cv.on{opacity:1}
+.vrole .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,18,25,.96) 0%,rgba(10,18,25,.9) 38%,rgba(10,18,25,.58) 68%,rgba(10,18,25,.38) 100%),linear-gradient(0deg,rgba(10,18,25,.55),rgba(10,18,25,0) 28%)}
+.vrole .vin{position:relative;z-index:1;height:100%;padding:96px 88px 84px;display:flex;flex-direction:column;max-width:880px}
+.vrole h2{font-size:52px;margin-bottom:30px}
+.vsteps{list-style:none;position:relative;display:flex;flex-direction:column;gap:4px}
+.vsteps::before{content:"";position:absolute;left:27px;top:20px;bottom:20px;width:2px;background:linear-gradient(var(--brand),rgba(66,173,232,.12))}
+.vsteps li{display:grid;grid-template-columns:56px 1fr;gap:20px;align-items:start;padding:10px 0}
+.vsteps .n{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:23px;color:var(--brand);background:var(--bg);border:1.5px solid var(--brand);position:relative;z-index:1;transition:background .35s,color .35s,box-shadow .35s}
+.vsteps li.now .n{background:var(--brand);color:#04121c;box-shadow:0 0 0 7px rgba(66,173,232,.18)}
+.vsteps h4{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1.1;margin-top:5px}
+.vsteps p{font-size:19px;color:#b9c8d3;line-height:1.45;margin-top:4px;max-width:640px}
+.vsteps.r::before{background:linear-gradient(var(--signal),rgba(226,162,59,.12))}
+.vsteps.r .n{color:var(--signal);border-color:var(--signal)}
+.vsteps.r li.now .n{background:var(--signal);color:#1a1204;box-shadow:0 0 0 7px rgba(226,162,59,.2)}
+.slide .vsteps li[data-f].dim{opacity:.22;filter:none}
+.vnote{margin-top:16px;margin-left:76px;padding:14px 18px;border-left:3px solid var(--signal);background:rgba(16,28,38,.78);font-size:18px;color:var(--muted);border-radius:0 8px 8px 0;max-width:640px}
+.reel-tag{position:absolute;right:88px;bottom:72px;z-index:2;display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);background:rgba(10,18,25,.72);border:1px solid var(--line);border-radius:4px;padding:8px 12px;transition:opacity .5s}
+.reel-tag i{width:8px;height:8px;border-radius:50%;background:#e53935;animation:rec 1.6s ease-in-out infinite;flex:none}
+@keyframes rec{50%{opacity:.25}}
+
+/* ---------- 5 / 7 · réplica SAE WEB ---------- */
+.s-sae{padding:62px 88px 40px}
+.s-sae h2{font-size:44px;margin-bottom:16px}
+.pills{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.pill{font-family:var(--f-mono);font-size:13px;letter-spacing:.04em;padding:7px 12px;border-radius:5px;border:1px solid var(--line);background:var(--panel);color:var(--muted);white-space:nowrap}
+.pill.now{border-color:var(--brand);color:var(--fg);background:var(--brand-soft)}
+.slide .pill[data-f].dim{opacity:.45}
+.descs{position:relative;height:34px;margin-bottom:12px}
+.desc{position:absolute;inset:0;font-size:21px;color:var(--fg)}
+.desc b{color:var(--signal)}
+.slide .desc[data-f]:not(.now){opacity:0}
+.slide .desc[data-f].dim{filter:none}
+
+.sae{font-family:Roboto,Arial,sans-serif;background:#3d4246;border:1px solid #1b1e21;border-radius:6px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.45);height:632px;display:flex;flex-direction:column}
+.sae .top{height:40px;background:#2b2f33;display:flex;align-items:center;gap:0;flex:none}
+.sae .top i{width:40px;height:40px;border-right:1px solid #24282b;display:grid;place-items:center;color:#cfd4d8}
+.sae .top i svg{width:18px;height:18px}
+.sae .top .nm{font-weight:700;font-size:15px;color:#fff;margin-left:14px;letter-spacing:.01em}
+.sae .top .sx{margin-left:auto;margin-right:16px;font-weight:700;font-style:italic;color:#fff;font-size:18px;letter-spacing:.02em}
+.sae .tabs0{display:flex;gap:2px;background:#2f3437;padding:0 8px;flex:none}
+.sae .tabs0 span{font-size:12.5px;padding:5px 14px;color:#d4d8db}
+.sae .tabs0 span.on{background:#5bd6f3;color:#102028}
+.sae .hdr{display:flex;align-items:center;gap:16px;padding:6px 10px;flex:none}
+.sae .num{font-size:28px;color:#4fc3f7;font-weight:500}
+.sae .hdr .t{font-size:12.5px;color:#fff;font-weight:500;display:flex;align-items:center;gap:5px}
+.sae .hdr .t svg{width:13px;height:13px}
+.sae .hdr .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.sae .clock{border:2px solid #4fc3f7;border-radius:4px;padding:3px 10px;font-size:15px;color:#fff;background:#2b2f33}
+.sae .stat{background:#e53935;color:#fff;font-size:15px;font-weight:500;padding:5px 12px;border-radius:3px}
+.sae .body{display:grid;grid-template-columns:57% 43%;gap:8px;padding:0 8px 8px;flex:1;min-height:0}
+.sae .col{border:1px solid #6c7378;border-radius:3px;display:flex;flex-direction:column;min-height:0}
+.sae .row{display:grid;gap:18px;padding:5px 14px}
+.sae .fld{position:relative;border-bottom:1px solid #8d959a;padding:12px 0 2px;min-height:34px;transition:border-color .3s,box-shadow .3s}
+.sae .fld label{position:absolute;top:0;left:0;font-size:9.5px;color:#b9c0c5}
+.sae .fld .v{font-size:13px;color:#fff;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.sae .fld.cur{border-bottom-color:#5bd6f3;box-shadow:0 2px 0 #5bd6f3}
+.sae .fld.ut{border-bottom-color:var(--signal);box-shadow:0 2px 0 var(--signal)}
+.sae .fld.ut .v{color:#ffd27a;font-weight:700}
+.sae .fld .flag{position:absolute;right:0;top:-6px;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:#1a1204;background:var(--signal);padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.sae .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:#2f3437;margin-top:4px}
+.sae .tabs span{font-size:12.5px;text-align:center;padding:6px 0;color:#d4d8db}
+.sae .tabs span.on{background:#5bd6f3;color:#102028}
+.sae .sec{display:flex;justify-content:space-between;align-items:center;background:#2f3437;margin-top:6px}
+.sae .sec span{font-size:12.5px;padding:5px 0;width:190px;text-align:center;background:#5bd6f3;color:#102028}
+.sae .relato{padding:8px 14px;font-size:12px;color:#fff;line-height:1.5;min-height:66px}
+.sae .relato b{color:#fff;font-weight:700}
+/* en la réplica, lo que todavía no se cargó queda vacío (no atenuado) */
+.slide .sae [data-f].dim{opacity:0;filter:none}
+.slide .sae .chip[data-f].dim{opacity:1}
+.sae .ev{flex:1;min-height:0;display:flex;flex-direction:column}
+.sae .evtabs{display:flex;background:#2f3437;font-size:12px}
+.sae .evtabs span{padding:6px 12px;color:#d4d8db}
+.sae .evtabs span.on{background:#5bd6f3;color:#102028}
+.sae table{width:100%;border-collapse:collapse;font-size:11.5px}
+.sae th{text-align:left;color:#fff;font-weight:500;background:#2f3437;padding:5px 8px;border-bottom:1px solid #6c7378}
+.sae td{padding:6px 8px;color:#fff;border-bottom:1px solid #2f3437;vertical-align:top;background:#1d2023}
+.sae tr.alt td{background:#3d4246}
+.sae .rg{border-top:1px solid #6c7378;padding:10px 12px 12px;background:#24282b}
+.sae .rg .h{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#cfd4d8;margin-bottom:8px;display:flex;justify-content:space-between}
+.sae .rg .h em{font-style:normal;color:var(--signal)}
+.chips{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.chip{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11.5px;color:#cfd4d8;padding:6px 8px;border:1px solid #3b4247;border-radius:4px;background:#1d2023;transition:all .35s}
+.chip i{width:10px;height:10px;border-radius:2px;flex:none}
+.chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.hit:not(.dim):not(.pend){border-color:var(--signal);background:rgba(226,162,59,.18);color:#fff;box-shadow:0 0 0 1px var(--signal)}
+.chip.hit:not(.dim):not(.pend)::after{content:"IRRADIAR";margin-left:auto;font-size:10px;color:#1a1204;background:var(--signal);padding:1px 5px;border-radius:2px}
+.fict{position:absolute;right:88px;bottom:14px;font-family:var(--f-mono);font-size:12px;color:var(--faint)}
+
+/* ---------- 3 · división de frecuencia (mapa animado) ---------- */
+.freq{display:grid;grid-template-columns:560px 1fr;gap:60px;align-items:start}
+.frecmap{display:block;width:560px;height:640px;margin-top:-24px;overflow:visible}
+.frecmap .b{fill:#1a2733;stroke:#0a1219;stroke-width:.7;fill-opacity:1;transition:fill .7s ease,fill-opacity .6s ease,stroke .4s;transition-delay:var(--dl,0ms)}
+.frecmap .b.on{fill:var(--c);fill-opacity:.88}
+.frecmap .b.foc{stroke:rgba(255,255,255,.9);stroke-width:.9}
+.frecmap .b.off{fill-opacity:.18}
+.frecmap .ul{font-family:var(--f-mono);font-size:14px;font-weight:500;fill:#fff;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round;opacity:0;transition:opacity .5s;pointer-events:none}
+.frecmap.lbl .ul{opacity:1}
+.frecmap.instant .b{transition:none}
+.fintro{font-size:21px;color:var(--muted);line-height:1.45;margin-bottom:14px}
+.ftab{display:flex;flex-direction:column;gap:6px}
+.slide .freg[data-f].dim{opacity:.12}
+.freg.now .z{text-shadow:0 0 18px currentColor}
+.freg{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.freg:first-child{border-top:0}
+.freg .z{font-family:var(--f-mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.fr{display:flex;align-items:center;gap:14px;padding:4px 0}
+.fr i{width:22px;height:22px;border-radius:4px;flex:none}
+.fr .nm{font-family:var(--f-display);font-weight:700;font-size:26px;width:120px}
+.fr .ut{font-size:19px;color:var(--muted)}
+.fr .ut b{color:var(--fg);font-weight:600}
+
+/* ---------- 9 · tiempos ---------- */
+.times{display:grid;grid-template-columns:420px 1fr;gap:48px;align-items:start;margin-top:30px}
+.chat{padding:22px 22px 26px;display:flex;flex-direction:column;gap:12px}
+.chat .h{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.bub{max-width:330px;padding:11px 14px;border-radius:10px 10px 10px 2px;background:#1f2c36;font-size:17px;line-height:1.4;position:relative}
+.bub small{display:block;font-family:var(--f-mono);font-size:11px;color:var(--faint);margin-top:4px}
+.bub.no{opacity:.7}
+.bub .lab{position:absolute;right:-12px;top:-10px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.bub.no .lab{background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
+.bub.go{border:1px solid var(--signal);background:rgba(226,162,59,.1)}
+.bub.go .lab{background:var(--signal);color:#1a1204}
+.tl{position:relative;padding-top:6px}
+.tl .bar{position:relative;height:16px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);margin:56px 0 0}
+.tl .seg{position:absolute;top:-1px;bottom:-1px;border-radius:8px}
+.tl .seg.c{left:0;width:24%;background:var(--brand)}
+.tl .seg.r{left:24%;width:50%;background:linear-gradient(90deg,var(--signal),rgba(226,162,59,.55))}
+.tl .tick{position:absolute;top:-46px;transform:translateX(-50%);text-align:center;font-family:var(--f-display);font-weight:700;font-size:30px;white-space:nowrap}
+/* el rótulo chico va debajo de la barra para no taparla */
+.tl .tick small{position:absolute;left:50%;top:66px;transform:translateX(-50%);font-family:var(--f-mono);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.tl .tick::after{content:"";position:absolute;left:50%;top:38px;width:2px;height:28px;background:var(--muted)}
+/* la marca del 0 se alinea al borde para no salirse */
+.tl .tick.t0{transform:none}
+.tl .tick.t0::after{left:0}
+.tl .tick.t0 small{left:0;transform:none}
+.tl .lanes{display:grid;grid-template-columns:24% 50% 26%;margin-top:52px}
+.lane{padding:16px 22px 0 0}
+.lane .who{font-family:var(--f-mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.lane.c .who{color:var(--brand)}.lane.r .who{color:var(--signal)}.lane.m .who{color:var(--muted)}
+.lane h4{font-family:var(--f-display);font-weight:700;font-size:29px;line-height:1.1;margin-bottom:8px}
+.lane p{font-size:18px;color:var(--muted);line-height:1.45}
+.lane .evs{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.lane .evs span{font-family:Roboto,Arial,sans-serif;font-size:11px;font-weight:500;color:#fff;background:#2f3437;border:1px solid #4a5156;padding:3px 7px;border-radius:3px}
+
+/* ---------- 4 · RugGear con personal tech recreada (modo oscuro) ---------- */
+.rgrid{display:grid;grid-template-columns:560px 1fr;gap:40px;align-items:start}
+.devs{display:flex;gap:44px;justify-content:center;margin-top:-30px}
+.dev-cap{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);text-align:center;margin-top:8px}
+.rgd{position:relative;height:620px;aspect-ratio:218/406;flex:none}
+.rgd>img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.rgd .scr{position:absolute;left:11.5%;top:17%;width:71.6%;height:65.5%;background:#121214;overflow:hidden;container-type:inline-size;border-radius:2px}
+/* 1em = 1/39 del ancho de pantalla */
+.pt{position:relative;width:100%;height:100%;font-size:calc(100cqw/39);font-family:Roboto,"Segoe UI",Arial,sans-serif;color:#fff;display:flex;flex-direction:column;background:#121214;line-height:1.2}
+.pt svg{display:block}
+.pt .st{height:2.8em;flex:none;background:#000;display:flex;justify-content:space-between;align-items:center;padding:0 1.6em}
+.pt .st span{font-size:1.5em}
+.pt .ab{height:5.4em;flex:none;background:linear-gradient(90deg,#2fb9c6,#2c4ca3);display:flex;align-items:center;gap:1.8em;padding:0 1.8em}
+.pt .ab .hb{font-size:2.6em;line-height:1}
+.pt .ab .brand{font-size:2.5em;letter-spacing:-.01em}
+.pt .ab .sr{margin-left:auto;width:2.6em;height:2.6em}
+.pt .ab .sr svg{width:100%;height:100%;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round}
+.pt .ib{height:5.2em;flex:none;background:#26272a;display:flex;justify-content:space-around;align-items:center;padding:0 .6em}
+.pt .ib i{position:relative;width:2.6em;height:2.6em;display:block}
+.pt .ib i.on::after{content:"";position:absolute;left:-.9em;right:-.9em;bottom:-1.3em;height:.25em;background:#fff}
+.pt .ib svg{width:100%;height:100%;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pt .ib em{position:absolute;right:-1.7em;top:-.9em;background:#e53935;color:#fff;font-style:normal;font-size:1.2em;line-height:1;padding:.25em .45em;border-radius:1em}
+.pt .vw{position:relative;flex:1;min-height:0;overflow:hidden;padding:1.5em 1.5em 0}
+.pt .tt{font-size:3.6em;font-weight:700;letter-spacing:-.01em;line-height:1;margin-bottom:.45em}
+.pt .lst{display:flex;flex-direction:column;gap:.55em}
+.pt .chn{background:#2e2f33;border-radius:.8em;padding:.7em 1.2em;display:grid;grid-template-columns:2.2em 1fr 2.2em 1.6em;align-items:center;column-gap:.9em;transition:background .3s,box-shadow .3s,opacity .4s,transform .4s}
+.pt .chn .bx{width:2em;height:2em;border:.2em solid #d9d9d9;border-radius:.25em;position:relative;transition:background .25s}
+.pt .chn.sel .bx{background:#d9d9d9}
+.pt .chn.sel .bx::after{content:"";position:absolute;left:.5em;top:.1em;width:.55em;height:1.05em;border:solid #2e2f33;border-width:0 .25em .25em 0;transform:rotate(45deg)}
+.pt .chn .nm{font-size:1.7em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt .chn.sel .nm{font-weight:500}
+.pt .chn .sub{grid-column:2/3;font-size:1.5em;color:#8bd448;white-space:nowrap;max-height:0;overflow:hidden;transition:max-height .35s}
+.pt .chn.sel .sub{max-height:1.4em}
+.pt .chn .sta svg{width:2.1em;height:2.1em;fill:none;stroke:#fff;stroke-width:1.8;stroke-linejoin:round}
+.pt .chn .chv svg{width:1.6em;height:1.6em;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round}
+.pt .chn.sel{box-shadow:0 0 0 .2em var(--signal)}
+.pt .chn.tap{background:#45464c}
+.slide .pt .chn[data-f].dim{opacity:0;transform:translateY(.8em);filter:none}
+.pt .obj{background:#2e2f33;border-radius:1em;padding:1.5em 1.7em 1.7em}
+.pt .obj .dot{width:1.7em;height:1.7em;border-radius:50%;background:#e53935;margin-bottom:1.6em}
+.pt .obj small{display:block;font-size:1.75em;color:#ddd;margin-bottom:.3em}
+.pt .obj strong{display:block;font-size:2.6em;font-weight:400;line-height:1.15;color:#fff;transition:opacity .3s}
+.pt .obj .ok{margin-top:.7em;font-size:1.8em;display:flex;align-items:center;gap:.5em}
+.pt .obj .ok::before{content:"";width:1.1em;height:1.1em;border-radius:50%;background:#2e9e4f}
+.pt .me{background:#3a3b3f;border-radius:.8em;text-align:center;font-weight:700;font-size:1.9em;padding:.45em 0;margin:1em 0 .8em}
+.pt .inf{font-size:1.75em;padding:.3em;color:#4f9cf0;line-height:1.35;display:flex;gap:.5em;align-items:flex-start;border-radius:.4em;transition:background .4s}
+.pt .inf svg{width:1.3em;height:1.3em;flex:none;margin-top:.05em;fill:none;stroke:#4f9cf0;stroke-width:2}
+.pt .inf.flash{animation:flash 1.4s ease}
+@keyframes flash{0%,40%{background:rgba(226,162,59,.35)}100%{background:transparent}}
+.pt .swap{animation:swap .5s ease}
+@keyframes swap{from{opacity:0;transform:translateY(.4em)}to{opacity:1;transform:none}}
+.pt .ptt{flex:none;margin:1.2em 1.4em 1.4em;height:6.8em;display:grid;grid-template-columns:1fr 8.6em;gap:1.2em}
+.pt .ptt .p{border:.22em solid #e6e6e6;border-radius:.9em;background:#000;display:flex;align-items:center;justify-content:center;gap:.9em;transition:background .3s,border-color .3s}
+.pt .ptt .p svg{width:2.6em;height:2.6em;fill:#fff}
+.pt .ptt .p span{font-size:1.45em;font-weight:700;letter-spacing:.01em}
+.pt .ptt .p.tx{border-color:var(--signal);background:#3d2a05;animation:tx 1s ease-in-out infinite}
+@keyframes tx{50%{box-shadow:0 0 0 .5em rgba(226,162,59,.25)}}
+.pt .ptt .sos{background:#e53935;border-radius:.9em;display:grid;place-items:center;font-size:2.5em}
+.rtext{display:flex;flex-direction:column;gap:14px}
+.rtext .it{padding:18px 22px}
+.rtext .it h4{font-family:var(--f-display);font-weight:700;font-size:27px;line-height:1.1;margin-bottom:6px}
+.rtext .it p{font-size:18px;color:var(--muted);line-height:1.45}
+.rtext .it.now{border-color:rgba(226,162,59,.6)}
+
+/* ---------- réplica SAE: carga tipeada ---------- */
+.sae .ty.typing::after{content:"";display:inline-block;width:1px;height:1em;background:#fff;vertical-align:-.15em;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.sae .geo.calc::after{content:"calculando…";color:#9fdcf2;font-style:italic}
+.sae .fld.flash{animation:fflash 1.6s ease}
+.sae .fld.auto{animation:fauto 1.2s ease}
+@keyframes fauto{0%,30%{background:rgba(91,214,243,.18)}100%{background:transparent}}
+.sae .acf .caret{position:absolute;right:2px;bottom:8px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #cfd4d8}
+.sae .ddl{position:absolute;left:0;bottom:calc(100% + 2px);min-width:330px;background:#fff;border-radius:3px;box-shadow:0 8px 24px rgba(0,0,0,.55);z-index:6;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none;padding:4px 0}
+.sae .ddl.on{opacity:1;transform:none}
+.sae .ddl div{font-size:12.5px;color:#222;padding:7px 12px;white-space:nowrap;transition:background .2s}
+.sae .ddl div.hl{background:#5bd6f3;color:#102028;font-weight:500}
+.sae .col{overflow:visible}
+@keyframes fflash{0%,35%{background:rgba(226,162,59,.32)}100%{background:transparent}}
+.sae .flag{transform-origin:right center}
+.slide .sae .flag:not(.dim):not(.pend){animation:pop .5s cubic-bezier(.2,.9,.3,1.4) backwards}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.slide .sae tr[data-f]:not(.dim) td{animation:rowin .5s ease both}
+.slide .sae tr.alt[data-f]:not(.dim) td{animation-delay:.9s}
+@keyframes rowin{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.chip.hit:not(.dim):not(.pend){animation:ring 1.3s ease-out .2s 2}
+@keyframes ring{0%{box-shadow:0 0 0 1px var(--signal),0 0 0 0 rgba(226,162,59,.55)}100%{box-shadow:0 0 0 1px var(--signal),0 0 0 14px rgba(226,162,59,0)}}
+
+/* ---------- gracias ---------- */
+.fin{display:grid;grid-template-columns:1fr 600px;gap:40px;align-items:center;padding-top:60px;padding-bottom:60px}
+.fin .eye{position:relative;width:170px;height:126px;margin-bottom:34px}
+.fin .eye img{position:relative;width:100%;height:auto;z-index:1}
+.fin .eye i{position:absolute;left:50%;top:44%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;border:1.5px solid var(--brand);opacity:0;animation:ping 3.6s cubic-bezier(.2,.6,.3,1) infinite}
+.fin .eye i:nth-child(2){animation-delay:1.2s}.fin .eye i:nth-child(3){animation-delay:2.4s}
+@keyframes ping{0%{transform:scale(.55);opacity:.7}100%{transform:scale(2.3);opacity:0}}
+.fin .gr{font-family:var(--f-display);font-weight:700;font-size:176px;line-height:.84;text-transform:uppercase;letter-spacing:-.005em}
+.fin .gr .shine{background:linear-gradient(100deg,var(--brand) 0%,var(--brand) 40%,#d9f1ff 50%,var(--brand) 60%,var(--brand) 100%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 5s ease-in-out infinite}
+@keyframes shine{0%,35%{background-position:100% 0}75%,100%{background-position:0 0}}
+.fin .rule{width:120px;height:3px;background:var(--signal);margin:40px 0 28px;border-radius:2px}
+.fin .dir{font-family:var(--f-display);font-weight:600;font-size:46px;line-height:1.02;text-transform:uppercase;letter-spacing:.01em}
+.fin .dir span{display:block;color:var(--muted);font-weight:500;font-size:30px;letter-spacing:.06em;margin-bottom:6px}
+.fin .pol{font-family:var(--f-mono);font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:26px}
+.fin .frecmap{width:560px;height:640px;margin:0 auto}
+.ticker{display:flex;align-items:center;gap:12px;font-family:var(--f-mono);font-size:15px;letter-spacing:.06em;color:var(--muted);height:22px;margin-top:4px;justify-content:center;white-space:nowrap}
+.ticker .led{width:10px;height:10px;border-radius:50%;background:var(--c,var(--ok));box-shadow:0 0 0 0 rgba(255,255,255,.4);animation:led 1.2s infinite;flex:none}
+@keyframes led{70%{box-shadow:0 0 0 8px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.ticker b{color:var(--fg);font-weight:500}
+@media (prefers-reduced-motion:reduce){.fin .eye i,.fin .gr .shine,.ticker .led{animation:none}}
+
+/* ---------- controles ---------- */
+.hud{position:fixed;right:18px;bottom:16px;display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:13px;color:var(--muted);z-index:5;transition:opacity .4s}
+.hud button{width:36px;height:34px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;font-size:15px}
+.hud button:hover{border-color:var(--brand)}
+.hint{position:fixed;left:16px;bottom:18px;font-family:var(--f-mono);font-size:12px;color:var(--faint);z-index:5;transition:opacity .4s}
+#progress{position:fixed;left:0;top:0;height:3px;background:var(--brand);z-index:6;transition:width .4s ease}
+body.idle .hud,body.idle .hint{opacity:0}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);background:var(--panel-2);border:1px solid var(--signal);color:var(--fg);font-size:15px;padding:10px 16px;border-radius:8px;z-index:7;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- modo documento (celular / ventana angosta) ---------- */
+body.doc{overflow:auto}
+body.doc #stage{position:static;width:auto;height:auto;transform:none!important}
+body.doc .slide{position:relative;opacity:1;visibility:visible;pointer-events:auto;padding:56px 18px 64px;border-bottom:1px solid var(--line);min-height:0}
+body.doc .slide [data-f].dim{opacity:1;filter:none}
+body.doc .src,body.doc .fict{position:static;margin-top:22px}
+body.doc .hud,body.doc .hint{display:none}
+body.doc h2{font-size:clamp(26px,7.4vw,36px)}
+body.doc .cover{min-height:92vh}
+body.doc .cover h1{font-size:clamp(40px,12.5vw,64px)}
+body.doc .cover .meta span{display:block}
+body.doc .cover .meta span+span{margin-left:0;margin-top:6px}
+body.doc .badge{width:auto;font-size:12px}
+body.doc .cover .lead{font-size:21px}
+body.doc .close-row{flex-wrap:wrap;gap:28px}
+body.doc .why,body.doc .rolegrid,body.doc .freq,body.doc .times,body.doc .steps,body.doc .roles,body.doc .rgrid,body.doc .fin{grid-template-columns:1fr}
+body.doc .frecmap{width:100%;height:auto;margin-top:0}
+body.doc .devs{flex-wrap:wrap;margin-top:20px}
+body.doc .steps::before,body.doc .roles{display:none}
+body.doc .k{grid-template-columns:1fr}
+body.doc .photo,body.doc .mapimg{width:100%;height:auto}
+body.doc .pills{flex-wrap:wrap}
+body.doc .descs{height:auto}
+body.doc .desc{position:static;opacity:1!important;margin-bottom:8px;font-size:17px}
+/* la réplica se escala para entrar en el ancho (ver fitSae) y va antes de las explicaciones */
+body.doc .sae-wrap{position:relative;overflow:hidden;cursor:zoom-in;order:3}
+body.doc .sae-wrap.big{overflow-x:auto;cursor:zoom-out}
+.zoomhint{display:none}
+body.doc .zoomhint{display:block;order:4;font-family:var(--f-mono);font-size:12px;color:var(--faint);margin-top:8px}
+body.doc .s-sae .pills{order:2;flex-wrap:wrap;gap:6px}
+body.doc .s-sae .descs{order:5;margin-top:14px}
+body.doc .s-sae .fict{order:6}
+body.doc .pill{font-size:11px;padding:5px 8px}
+body.doc .s-sae.playing .desc:not(.now){display:none}
+body.doc .tl .lanes{grid-template-columns:1fr}
+body.doc .tl .tick{font-size:22px}
+body.doc .k .v{font-size:54px}
+body.doc .bullets li{font-size:18px}
+body.doc .fintro{font-size:18px}
+body.doc .fr .nm{font-size:22px;width:96px}
+body.doc .fr .ut{font-size:16px}
+body.doc .freg{grid-template-columns:72px 1fr;gap:10px}
+body.doc .devs{flex-wrap:nowrap;gap:14px}
+body.doc .rgd{height:min(440px,calc((100vw - 60px)/2*406/218))}
+body.doc .freg.pend{opacity:.15}
+body.doc .pt .chn.pend{opacity:0}
+body.doc .sae .pend{opacity:0}
+body.doc .sae .chip.pend{opacity:1}
+body.doc .fin .gr{font-size:clamp(56px,19vw,84px)}
+body.doc .fin .eye{width:120px;height:90px}
+body.doc .fin .dir{font-size:clamp(24px,7vw,32px)}
+body.doc .fin .pol{letter-spacing:.08em}
+body.doc .ticker{white-space:normal;text-align:center;height:auto}
+body.doc .s-sae{padding:56px 18px 64px}
+body.doc .vrole{padding:0;min-height:100vh}
+body.doc .vrole .vin{padding:56px 18px 64px;max-width:none}
+body.doc .vrole .shade{background:linear-gradient(180deg,rgba(10,18,25,.62),rgba(10,18,25,.9) 60%)}
+body.doc .reel-tag{display:none}
+body.doc .vsteps li{grid-template-columns:44px 1fr;gap:14px}
+body.doc .vsteps::before{left:21px}
+body.doc .vsteps .n{width:44px;height:44px;font-size:19px}
+body.doc .vsteps h4{font-size:24px}
+body.doc .vsteps p{font-size:16px}
+body.doc .vnote{margin-left:0;font-size:16px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+<!-- 1 · PORTADA -->
+<section class="slide cover" data-id="portada">
+  <img class="bgimg" src="media/fotos/sala.jpg" alt="">
+  <div class="veil"></div>
+  <img class="logo" data-a src="media/logo_ojo.png" alt="Logo Cordobeses en Alerta">
+  <div class="inst" data-a>Policía de la Provincia de Córdoba · Ministerio de Seguridad</div>
+  <div class="badge" data-a>Base Olimpo · 8 frecuencias RugGear</div>
+  <h1 data-a>División<br><span class="hl">de Frecuencia</span></h1>
+  <p class="lead" data-a>Operador de cabina y radio operador: del mensaje del vecino al móvil asignado.</p>
+  <div class="meta" data-a><span>Dirección Monitoreo Cordobeses en Alerta</span><span>Córdoba Capital</span><span>Noviembre 2026</span></div>
+</section>
+
+<!-- 2 · POR QUÉ -->
+<section class="slide" data-id="por-que">
+  <div class="kicker" data-a>Mediciones</div>
+  <h2 data-a>Vamos a medir cuánto tarda en comisionarse cada hecho</h2>
+  <div class="why">
+    <ul class="bullets">
+      <li data-a>Cada hecho deja su recorrido registrado en el <b>SAE WEB</b>, con fecha y hora en cada paso.</li>
+      <li data-a>El recorrido pasa por dos manos: el <b>operador de cabina</b>, que crea la carta e irradia, y el <b>radio operador</b>, que despacha y asigna el móvil.</li>
+      <li data-a>Para que el móvil llegue rápido, cada uno tiene que cumplir su parte <b>a tiempo</b> y a la <b>frecuencia correcta</b>.</li>
+      <li data-a>Por eso la frecuencia se dividió en <b>8 partes</b>, de acuerdo a la UT donde ocurre el hecho.</li>
+    </ul>
+    <div class="kgrid">
+      <div class="k panel" data-a><div class="v">1<small>min</small></div><div><div class="n">Operador de cabina</div><div class="d">Interpreta el hecho, crea la carta e irradia a la frecuencia.</div></div></div>
+      <div class="k panel main" data-a><div class="v">1–3<small>min</small></div><div><div class="n">Hasta la asignación del móvil</div><div class="d">Entre lo que hace el operador de cabina y el radio operador.</div></div></div>
+      <div class="k panel" data-a><div class="v">8</div><div><div class="n">Frecuencias RugGear</div><div class="d">Norte 1 y 2 · Este 1 y 2 · Sur 1 y 2 · Centro · Oeste.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · DIVISIÓN DE FRECUENCIA (mapa por barrios que se enciende por región) -->
+<section class="slide" data-id="frecuencias">
+  <div class="kicker" data-a>División de frecuencia</div>
+  <h2 data-a>La ciudad, dividida en 8 frecuencias según la UT</h2>
+  <div class="freq">
+    <svg class="frecmap" data-a role="img" aria-label="Mapa de los 234 barrios del programa coloreados según su frecuencia RugGear"></svg>
+    <div class="ftab">
+      <p class="fintro" data-a>Cada número del mapa es una <b>UT (DJP)</b>. Cada frecuencia agrupa una o varias UT: el hecho se irradia a la frecuencia de su UT.</p>
+      <div class="freg" data-a data-f="2"><div class="z" style="color:var(--f1)">Norte</div><div><div class="fr"><i style="background:var(--f1)"></i><span class="nm">Norte 1</span><span class="ut">UT <b>15</b></span></div><div class="fr"><i style="background:var(--f2)"></i><span class="nm">Norte 2</span><span class="ut">UT <b>14 · 23 · 24 bis</b></span></div></div></div>
+      <div class="freg" data-a data-f="3"><div class="z" style="color:var(--f3)">Este</div><div><div class="fr"><i style="background:var(--f3)"></i><span class="nm">Este 1</span><span class="ut">UT <b>7 · 9 · 13 · 17</b></span></div><div class="fr"><i style="background:var(--f4)"></i><span class="nm">Este 2</span><span class="ut">UT <b>6 · 8</b></span></div></div></div>
+      <div class="freg" data-a data-f="4"><div class="z" style="color:var(--f5)">Sur</div><div><div class="fr"><i style="background:var(--f5)"></i><span class="nm">Sur 1</span><span class="ut">UT <b>5 · 12 · 21</b></span></div><div class="fr"><i style="background:var(--f6)"></i><span class="nm">Sur 2</span><span class="ut">UT <b>4 · 11</b></span></div></div></div>
+      <div class="freg" data-a data-f="5"><div class="z" style="color:var(--f7)">Centro</div><div><div class="fr"><i style="background:var(--f7)"></i><span class="nm">Centro</span><span class="ut">UT <b>2 · 3</b></span></div></div></div>
+      <div class="freg" data-a data-f="6"><div class="z" style="color:var(--f8)">Oeste</div><div><div class="fr"><i style="background:var(--f8)"></i><span class="nm">Oeste</span><span class="ut">UT <b>10 · 19 · 20 · 22</b></span></div></div></div>
+      <div class="note" data-a data-f="7">En el SAE WEB la UT aparece en el campo <b>Comuna</b> como <b>«DISTRITO»</b>: es la UT (DJP) que le corresponde al hecho.</div>
+    </div>
+  </div>
+  <div class="src" data-f="1">234 barrios del programa · cada uno pintado según la frecuencia de su UT</div>
+</section>
+
+<!-- 4 · RUGGEAR: CÓMO FIGURAN LAS FRECUENCIAS -->
+<section class="slide" data-id="ruggear">
+  <div class="kicker" data-a>RugGear · personal tech</div>
+  <h2 data-a>Así figuran las frecuencias en el RugGear</h2>
+  <div class="rgrid">
+    <div class="rtext">
+      <div class="it panel" data-a data-f="1"><h4>Cada frecuencia es un canal</h4><p>En <b>Canales</b> aparecen las 8, cada una con las UT que abarca: <b>NORTE 1 - UT 15</b>, <b>NORTE 2 - UT 14, 23, 24 BIS</b> y así hasta <b>OESTE</b>.</p></div>
+      <div class="it panel" data-a data-f="2"><h4>Hecho en la UT 15 → Norte 1</h4><p>Se marca el canal de la UT del hecho y queda <b>«Escuchando este canal»</b>. En <b>Resumen</b> figura como <b>Objetivo</b> y abajo, en la última modulación.</p></div>
+      <div class="it panel" data-a data-f="3"><h4>Hecho en la UT 14 → Norte 2</h4><p>Cambia el canal, cambia el objetivo. Con <b>Presione para hablar</b> se irradia el hecho a esa frecuencia.</p></div>
+    </div>
+    <div class="devs" data-a>
+      <div><div class="rgd" data-pt="canales"></div><div class="dev-cap">Canales</div></div>
+      <div><div class="rgd" data-pt="resumen"></div><div class="dev-cap">Resumen</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · RECORRIDO -->
+<section class="slide" data-id="recorrido">
+  <div class="kicker" data-a>Recorrido de un hecho</div>
+  <h2 data-a>Del mensaje del vecino al móvil en la calle</h2>
+  <div class="steps">
+    <div class="step" data-a><div class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 10h6M9 13.5h4"/></svg></div><div class="no">01</div><h4>El vecino explica su situación</h4><p>Por mensaje directo al cuadrante. Desde ese mensaje empieza a correr el tiempo.</p></div>
+    <div class="step" data-a><div class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4M7 9h6M7 12h10"/></svg></div><div class="no">02</div><h4>Crea la carta en el SAE WEB</h4><p>Teléfono, calle y altura. El sistema da las coordenadas y la UT.</p></div>
+    <div class="step" data-a><div class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="6" width="10" height="16" rx="2"/><path d="M10 6V2M10 11h4M10 14h4"/><path d="M19 5a6 6 0 0 1 0 8M21.5 3a9.5 9.5 0 0 1 0 12"/></svg></div><div class="no">03</div><h4>Irradia a la frecuencia</h4><p>Según la UT, por RugGear, al radio operador de esa frecuencia.</p></div>
+    <div class="step" data-a><div class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/><path d="M3 9v3M21 9v3"/></svg></div><div class="no">04</div><h4>Despacha y asigna el móvil</h4><p>El radio operador recibe la carta, asigna el móvil y deja constancia.</p></div>
+    <div class="step end" data-a><div class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V11l2-5h11l3 5h2v5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6M5 11h14"/></svg></div><div class="no">05</div><h4>El móvil arriba</h4><p>El personal de calle llega al lugar del hecho.</p></div>
+  </div>
+  <div class="roles" data-a>
+    <div class="role cab">Operador de cabina</div>
+    <div class="role rad">Radio operador</div>
+    <div class="role mov">Calle</div>
+  </div>
+</section>
+
+<!-- 4 · OPERADOR DE CABINA -->
+<section class="slide vrole" data-id="cabina" data-clips="media/video/cabina_carga|Operador de cabina · carga en el SAE WEB;media/video/cabina_ruggear|Operadora de cabina · irradia por RugGear;media/video/cabina_ruggear_mano|RugGear · personal tech">
+  <div class="reel"><video class="cv on" muted playsinline preload="metadata"></video><video class="cv" muted playsinline preload="metadata"></video></div>
+  <div class="shade"></div>
+  <div class="vin">
+    <div class="kicker" data-a>Funciones · operador de cabina</div>
+    <h2 data-a>El operador de cabina crea la carta e irradia a la frecuencia que corresponde</h2>
+    <ol class="vsteps">
+      <li data-a data-f="1"><b class="n">01</b><div><h4>Ingresa la alerta</h4><p>Recibe el mensaje directo del vecino e interpreta qué está pasando.</p></div></li>
+      <li data-a data-f="2"><b class="n">02</b><div><h4>Geolocaliza y crea la carta</h4><p>Carga en el SAE WEB el teléfono y la calle con la altura; el sistema completa el resto.</p></div></li>
+      <li data-a data-f="3"><b class="n">03</b><div><h4>Visualiza la UT a la que pertenece</h4><p>El SAE WEB la muestra en el campo <b>Comuna</b>.</p></div></li>
+      <li data-a data-f="4"><b class="n">04</b><div><h4>Irradia a la frecuencia que corresponde</h4><p>Una vez reconocida la UT, pasa el hecho por RugGear a esa frecuencia.</p></div></li>
+    </ol>
+    <div class="vnote" data-a data-f="4">Un cuadrante puede llegar a tener <b>varias frecuencias</b>: lo que define a cuál se irradia es la <b>UT</b> del hecho.</div>
+  </div>
+  <div class="reel-tag"><i></i><span></span></div>
+</section>
+
+<!-- 5 · RÉPLICA SAE · EJEMPLO 1 -->
+<section class="slide s-sae" data-id="sae-norte1" data-case="1">
+  <div class="kicker" data-a>Así se carga · ejemplo 1</div>
+  <h2 data-a>Un hecho en la UT 15 se irradia a NORTE 1</h2>
+  <div class="sae-host"></div>
+  <div class="fict">Réplica del SAE WEB · caso ficticio con fines de capacitación</div>
+</section>
+
+<!-- 7 · RÉPLICA SAE · EJEMPLO 2 -->
+<section class="slide s-sae" data-id="sae-norte2" data-case="2">
+  <div class="kicker" data-a>Así se carga · ejemplo 2</div>
+  <h2 data-a>Un hecho en la UT 14 se irradia a NORTE 2</h2>
+  <div class="sae-host"></div>
+  <div class="fict">Réplica del SAE WEB · caso ficticio con fines de capacitación</div>
+</section>
+
+<!-- 8 · RADIO OPERADOR -->
+<section class="slide vrole" data-id="radio" data-clips="media/video/radio_3|Radio operadora · Base Olimpo;media/video/radio_2|Radio operador · asignación en el SAE WEB">
+  <div class="reel"><video class="cv on" muted playsinline preload="metadata"></video><video class="cv" muted playsinline preload="metadata"></video></div>
+  <div class="shade"></div>
+  <div class="vin">
+    <div class="kicker" data-a>Funciones · radio operador</div>
+    <h2 data-a>El radio operador recibe la carta, despacha y asigna el móvil</h2>
+    <ol class="vsteps r">
+      <li data-a data-f="1"><b class="n">01</b><div><h4>Misma modalidad</h4><p>Trabaja su frecuencia: recibe solo los hechos de las UT que le corresponden.</p></div></li>
+      <li data-a data-f="2"><b class="n">02</b><div><h4>Recibe la carta</h4><p>Abre en el SAE WEB la carta que le irradió el operador de cabina.</p></div></li>
+      <li data-a data-f="3"><b class="n">03</b><div><h4>Despacha y asigna el móvil</h4><p>Asigna el móvil de la zona y lo despacha al lugar del hecho.</p></div></li>
+      <li data-a data-f="4"><b class="n">04</b><div><h4>Deja constancia y eleva la asignación</h4><p>Registra en la alerta todo lo trabajado.</p></div></li>
+    </ol>
+  </div>
+  <div class="reel-tag"><i></i><span></span></div>
+</section>
+
+<!-- 9 · TIEMPOS -->
+<section class="slide" data-id="tiempos">
+  <div class="kicker" data-a>Tiempos</div>
+  <h2 data-a>El tiempo corre desde que el vecino explica su situación</h2>
+  <div class="times">
+    <div class="chat panel" data-a>
+      <div class="h">Mensaje directo · cuadrante</div>
+      <div class="bub no" data-f="1"><span class="lab">No cuenta</span>Hola, buenas tardes.<small>16:54</small></div>
+      <div class="bub go" data-f="2"><span class="lab">Arranca el tiempo</span>Hay un señor mayor en la esquina, está desorientado y no sabe dónde vive.<small>16:55</small></div>
+    </div>
+    <div class="tl" data-a data-f="3">
+      <div class="bar">
+        <div class="seg c"></div><div class="seg r"></div>
+        <div class="tick t0" style="left:0">0<small>situación</small></div>
+        <div class="tick" style="left:24%">1 min<small>carta irradiada</small></div>
+        <div class="tick" style="left:74%">1 a 3 min<small>móvil asignado</small></div>
+      </div>
+      <div class="lanes">
+        <div class="lane c"><div class="who">Operador de cabina</div><h4>Interpreta, crea la carta e irradia</h4><p>Crear la carta y designar la frecuencia se hacen en simultáneo.</p><div class="evs"><span>IRRADIADA</span></div></div>
+        <div class="lane r"><div class="who">Radio operador</div><h4>Abre la carta, despacha y asigna el móvil</h4><p>Desde que abre la carta hasta que el móvil queda asignado.</p><div class="evs"><span>ASIGNACION DE MOVIL</span></div></div>
+        <div class="lane m"><div class="who">Calle</div><h4>Arribo del móvil</h4><p>El sistema lo registra solo.</p><div class="evs"><span>MOVIL ARRIBA A SUCESO</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="src">En gris: eventos que quedan registrados en el SAE WEB con fecha y hora</div>
+</section>
+
+<!-- 11 · GRACIAS: el mapa recorre las 8 frecuencias -->
+<section class="slide fin" data-id="gracias">
+  <div>
+    <div class="eye" data-a><i></i><i></i><i></i><img src="media/logo_ojo.png" alt="Logo Cordobeses en Alerta"></div>
+    <div class="gr" data-a>¡Muchas<br><span class="shine">gracias!</span></div>
+    <div class="rule" data-a></div>
+    <div class="dir" data-a><span>Dirección Monitoreo</span>Cordobeses en Alerta</div>
+    <div class="pol" data-a>Policía de la Provincia de Córdoba · Ministerio de Seguridad</div>
+  </div>
+  <div data-a>
+    <svg class="frecmap fin-map" aria-hidden="true"></svg>
+    <div class="ticker"><span class="led"></span><span class="tk">Cada hecho, a la frecuencia de su UT</span></div>
+  </div>
+</section>
+
+</div>
+
+<div class="hint">← → avanzar · F pantalla completa</div>
+<div id="toast" role="status"></div>
+<div class="hud"><button id="prev" aria-label="Lámina anterior">←</button><span id="count">1 / 11</span><button id="next" aria-label="Lámina siguiente">→</button><button id="fs" aria-label="Pantalla completa">⛶</button></div>
+
+<script src="media/mapa-frec.js"></script>
+<script>
+// ---------- réplica del SAE WEB (dos casos ficticios) ----------
+(function(){
+  const FREQ=[
+    ['NORTE 1 - UT 15','--f1'],['NORTE 2 - UT 14, 23, 24 BIS','--f2'],
+    ['ESTE 1 - UT 7, 9, 13, 17','--f3'],['ESTE 2 - UT 6, 8','--f4'],
+    ['SUR 1 - UT 5, 12, 21','--f5'],['SUR 2 - UT 4, 11','--f6'],
+    ['CENTRO - UT 2, 3','--f7'],['OESTE - UT 10, 19, 20, 22','--f8']
+  ];
+  const CASOS={
+    1:{num:'115500',hora:'10:15',tel:'3515550101',calle:'CIENAGA DEL CORO 4900',entre:'CANDONGA',y:'JUAN DE AVILA Y ZARATE',
+       lat:'-31.359120000000',lon:'-64.236410000000',cuad:'VILLA LOS ANGELES',comi:'CUADRANTE 2',comuna:'DISTRITO 15',bomb:'CUARTEL II',
+       relato:'VECINA INF QUE HAY UN SR MAYOR EN LA ESQUINA, ESTARIA DESORIENTADO Y NO SABRIA DAR DATOS DE SU DOMICILIO',
+       tipo:'ASISTENCIA A PERSONA',sub:'DESORIENTADA - DESAPARECIDA',prio:'ALTA',freq:0,
+       qt:'ASIS',qs:'DESO',
+       d3:'En <b>Comuna</b> aparece la UT del hecho: <b>DISTRITO 15</b>.',
+       d5:'Con la UT a la vista, irradia: <b>DISTRITO 15 → NORTE 1 - UT 15</b>.'},
+    2:{num:'115501',hora:'10:32',tel:'3515550202',calle:'ALBERTO NICASIO 7400',entre:'JUAN NEPPER',y:'',
+       lat:'-31.345110000000',lon:'-64.254020000000',cuad:'ARGUELLO',comi:'CUADRANTE 2',comuna:'DISTRITO 14',bomb:'1',
+       relato:'VECINO INF QUE UNA SRA SE HABRIA CAIDO EN LA VIA PUBLICA, ESTARIA ALTERADA Y NO QUERRIA RECIBIR AYUDA',
+       tipo:'EMERGENCIA DE SALUD (107)',sub:'INDIVIDUO ACCIDENTADO',prio:'ALTA',freq:1,
+       qt:'EMER',qs:'ACCID',
+       d3:'Otra vez la UT aparece en <b>Comuna</b>: <b>DISTRITO 14</b>.',
+       d5:'<b>DISTRITO 14 → NORTE 2 - UT 14, 23, 24 BIS</b>. Una misma frecuencia abarca varias UT.'}
+  };
+  const ic=d=>'<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg></i>';
+  const ICONS=['<path d="M19 12H5M11 6l-6 6 6 6"/>','<path d="M5 16V11l2-5h10l2 5v5M5 11h14"/><circle cx="8" cy="16" r="1.5"/><circle cx="16" cy="16" r="1.5"/>','<circle cx="12" cy="12" r="8"/>','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>','<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>','<path d="M6 6l12 12M18 6L6 18"/>','<path d="M4 4h16v16H4z"/>','<circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 11l8-4M8 13l8 4"/>','<path d="M17 2l4 4-4 4M3 12V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 12v3a3 3 0 0 1-3 3H3"/>','<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z"/>','<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>','<path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 21v-7h8v7"/>','<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'];
+  const PIN='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+  const USR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+  // f: paso en que aparece el dato · cls: resaltado del campo en ese paso
+  const fld=(lab,val,f,extra)=>'<div class="fld'+(extra||'')+'"'+(f?' data-f="'+f+'"':'')+'><label>'+lab+'</label><span class="v">'+(val||'&nbsp;')+'</span></div>';
+  // .ty = se tipea al llegar a su paso; .geo = lo calcula el sistema (latitud/longitud)
+  const fldIn=(lab,val,f,extra,cls)=>'<div class="fld"><label>'+lab+'</label><span class="v'+(f&&val?' ty':'')+(cls||'')+'"'+(f?' data-f="'+f+'"':'')+(f&&val?' data-t="'+val+'"':'')+'>'+(val||'&nbsp;')+'</span>'+(extra||'')+'</div>';
+  const PASOS=['Teléfono','Calle y altura','La UT en Comuna','Relato y tipificación','Irradiar a la frecuencia'];
+  // tipificaciones del SAE WEB (tipos y subtipos que figuran en los sucesos exportados del SAE)
+  const TIPIF={
+    'ALARMA':['COMUNITARIA','DE AUTO','DE COMERCIO','DE ESCUELA','DOMICILIO','NO RECONOCIDA'],
+    'AMENAZA DE BOMBA':['ARTEFACTO EXPLOSIVO'],
+    'APREHENSIONES':['APREHENSIONES'],
+    'ASISTENCIA A PERSONA':['DESORIENTADA - DESAPARECIDA','SITUACION DE CALLE'],
+    'BOTON DE PANICO':['BOTON DE PANICO'],
+    'COLABORACION A MOVIL':['COLABORACION A MOVIL'],
+    'CONSUMO':['ALCOHOL Y DROGAS','ALCOHOL','DROGAS'],
+    'CONTROL POLICIAL':['CONTROL POLICIAL'],
+    'DAÑO':['A BIENES COMERCIALES','A BIENES PERSONALES','A BIENES PUBLICOS','OTROS','VANDALISMO'],
+    'DESAPARICION DE PERSONAS':['DESAPARICION DE PERSONAS'],
+    'DISTURBIOS':['ALTERACION DEL ORDEN PUBLICO','CONFLICTO VECINAL','FIESTA CLANDESTINA','RIÑA','RUIDOS MOLESTOS'],
+    'EMERGENCIA CIVIL':['ANIMALES SUELTOS','ARBOLES CAIDOS','CABLES CAIDOS','INUNDACIONES','OTROS INCIDENTES','POSTES CAIDOS'],
+    'EMERGENCIA DE SALUD (107)':['ACCIDENTE DE TRANSITO','HERIDO DE ARMA','INDIVIDUO ACCIDENTADO','INDIVIDUO DESCOMPUESTO','OTRO','SOLICITUD DE AMBULANCIA'],
+    'ESTAFA':['DELITO ECONOMICO','PRESENCIAL','VIRTUAL'],
+    'HURTO':['A COMERCIO','A DOMICILIO','A PERSONA','EN VIA PUBLICA','OTRO'],
+    'INCENDIO':['DE AUTOMOVIL','DE BASURA','DE PASTIZAL','DE VIVIENDA','OTRO'],
+    'INCIDENTES VIALES':['ACCIDENTE VIA PUBLICA - SINIESTRO VIAL','CONDUCCION PELIGROSA','OTRO','VEHICULO MAL ESTACIONADO'],
+    'PEDIDO DE PARADERO':['PEDIDO DE PARADERO'],
+    'ROBO':['ARREBATO','COMERCIO','PERSONA','VIVIENDA'],
+    'SOSPECHOSO':['AUTOMOVIL','FEMENINO','INDIVIDUOS','MASCULINO','MOTOVEHICULO','OTROS'],
+    'TENTATIVA DE ROBO':['A COMERCIO','A PERSONA','A VEHICULOS','A VIVIENDA','OTROS'],
+    'VIOLENCIA':['AGRESIONES Y AMENAZAS','DE GENERO','INTRAFAMILIAR','OTRO']
+  };
+  window.SAE_TIPIF=TIPIF;
+
+  document.querySelectorAll('.s-sae').forEach(sl=>{
+    const c=CASOS[sl.dataset.case];
+    const D=['Lo primero que se carga es el <b>número de teléfono</b> del vecino.',
+             'Se carga la <b>calle con la altura</b>: el sistema completa <b>solo</b> la geolocalización, la cuadrícula, la comisaría y la comuna.',
+             c.d3,
+             'Se carga el <b>relato</b>. Tipo y subtipo se eligen del <b>desplegable</b> mientras se escribe; la prioridad viene dada.',
+             c.d5];
+    let h='<div class="pills" data-a>'+PASOS.map((p,i)=>'<span class="pill" data-f="'+(i+1)+'">'+(i+1)+' · '+p+'</span>').join('')+'</div>';
+    h+='<div class="descs" data-a>'+D.map((d,i)=>'<div class="desc" data-f="'+(i+1)+'">'+d+'</div>').join('')+'</div>';
+    h+='<div class="sae-wrap" data-a><div class="sae">';
+    h+='<div class="top">'+ICONS.map(ic).join('')+'<span class="nm">SAE-WEB (PROD)</span><span class="sx">SOFLEX</span></div>';
+    h+='<div class="tabs0"><span>Grilla</span><span class="on">Sucesos</span></div>';
+    h+='<div class="hdr"><span class="num">'+c.num+'</span><span class="t">'+PIN+'CORDOBESES EN ALERTA</span><span class="t">'+USR+'operador.cabina</span>'+
+       '<span class="r"><span class="clock">02/11/2026 '+c.hora+'</span><span class="stat">PENDIENTE</span></span></div>';
+    h+='<div class="body"><div class="col">';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr 1fr">'+fldIn('Teléfono*',c.tel,1)+fld('Origen de la llamada*','CORDOBESES EN ALERTA')+fld('Medio origen*','WHATSAPP')+'</div>';
+    h+='<div class="tabs"><span class="on">Localización</span><span>Denunciante</span><span>Adicionales</span></div>';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr 1fr">'+fld('Provincia*','CORDOBA')+fld('Departamento*','CAPITAL')+fld('Localidad','CORDOBA')+'</div>';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr 1fr">'+fldIn('Calle*',c.calle,2)+fldIn('Entre calle',c.entre,2)+fldIn('y Calle',c.y,2)+'</div>';
+    // lo completa el sistema al cargar la calle con la altura (paso 2)
+    h+='<div class="row" style="grid-template-columns:1fr 1fr">'+fldIn('Latitud',c.lat,2,'',' geo')+fldIn('Longitud',c.lon,2,'',' geo')+'</div>';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr 1fr">'+fldIn('Cuadrícula',c.cuad,2,'',' geo')+fldIn('Comisaría',c.comi,2,'',' geo')+
+       '<div class="fld ut-f"><label>Comuna</label><span class="v ty geo" data-f="2" data-t="'+c.comuna+'">'+c.comuna+'</span><span class="flag" data-f="3">UT</span></div></div>';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr">'+fldIn('Bomberos',c.bomb,2,'',' geo')+fld('Salud','')+'</div>';
+    h+='<div class="sec"><span>Relato *</span></div>';
+    const r1=c.hora+' Tel:'+c.tel+' - Cuadrícula: '+c.cuad+' ('+c.comi+')';
+    // el encabezado del relato lo arma el sistema (.pre); el operador escribe lo que informa el vecino
+    h+='<div class="relato" data-f="4"><b><span class="ty pre" data-s="4" data-t="'+r1+'">'+r1+'</span><br><span class="ty pre" data-s="4" data-t="'+c.calle+'">'+c.calle+'</span></b><br><br><span class="ty" data-s="4" data-t="'+c.relato+'">'+c.relato+'</span></div>';
+    h+='<div class="sec"><span>Tipificación *</span></div>';
+    // tipo y subtipo: desplegable que se filtra al escribir; la prioridad viene con la tipificación
+    const ac=(lab,val,kind,q)=>'<div class="fld acf"><label>'+lab+'</label><span class="v ty ac" data-f="4" data-t="'+val+'" data-ac="'+kind+'" data-q="'+q+'" data-tipo="'+c.tipo+'">'+val+'</span><div class="ddl"></div><i class="caret"></i></div>';
+    h+='<div class="row" style="grid-template-columns:1fr 1fr .5fr">'+ac('Tipo*',c.tipo,'tipo',c.qt)+ac('Subtipo*',c.sub,'sub',c.qs)+fldIn('Prioridad',c.prio,4,'',' geo')+'</div>';
+    h+='</div><div class="col"><div class="ev">';
+    h+='<div class="evtabs"><span class="on">Eventos</span><span>Coincidentes (0)</span><span>Preguntas (0)</span><span>Datos Extra</span></div>';
+    h+='<table><thead><tr><th style="width:118px">Fecha</th><th style="width:96px">Evento</th><th>Descripción</th><th style="width:96px">Usuario</th></tr></thead><tbody>';
+    h+='<tr data-f="5"><td>02/11/2026 '+c.hora+':48</td><td>COMENTARIO</td><td>IRRADIADA A '+FREQ[c.freq][0]+'</td><td>operador.cabina</td></tr>';
+    h+='<tr class="alt" data-f="5"><td>02/11/2026 '+c.hora+':52</td><td>COMENTARIO</td><td>RADIO '+FREQ[c.freq][0].split(' - ')[0]+' EN CONOCIMIENTO</td><td>radio.operador</td></tr>';
+    h+='</tbody></table></div>';
+    h+='<div class="rg"><div class="h"><span>RugGear · irradiar a frecuencia</span><em data-f="3">'+c.comuna+'</em></div><div class="chips">'+
+       FREQ.map((f,i)=>'<div class="chip'+(i===c.freq?' hit':'')+'"'+(i===c.freq?' data-f="5"':'')+'><i style="background:var('+f[1]+')"></i><span>'+f[0]+'</span></div>').join('')+'</div></div>';
+    h+='</div></div></div></div>';
+    h+='<div class="zoomhint">Tocá la pantalla del SAE para ampliarla</div>';
+    sl.querySelector('.sae-host').outerHTML=h;
+  });
+
+  // ---------- tipeo de la carga, paso a paso ----------
+  const SLEEP=ms=>new Promise(r=>setTimeout(r,ms));
+  const stepOf=e=>+(e.dataset.s||e.dataset.f);
+  const T=sl=>sl.__t||0;   // cada réplica tiene su propio turno: un paso nuevo cancela el anterior
+  const closeDD=sl=>sl.querySelectorAll('.ddl.on').forEach(d=>d.classList.remove('on'));
+  window.saeFill=(sl,st)=>{ sl.__t=T(sl)+1; sl.classList.remove('busy'); closeDD(sl); sl.querySelectorAll('.fld.cur').forEach(f=>f.classList.remove('cur')); sl.querySelectorAll('.ty').forEach(e=>{ e.classList.remove('typing','calc'); e.textContent=stepOf(e)<=st?e.dataset.t:''; }); };
+  // desplegable: primero las opciones que empiezan con lo escrito, después las que lo contienen
+  const opciones=(all,q)=>{ q=q.toUpperCase(); return [...all.filter(o=>o.startsWith(q)),...all.filter(o=>!o.startsWith(q)&&o.includes(q))].slice(0,6); };
+  async function autocompletar(e,my){
+    const sl=e.closest('.slide');
+    const fld=e.closest('.fld'), dd=fld.querySelector('.ddl'), t=e.dataset.t, q=e.dataset.q;
+    const all=e.dataset.ac==='tipo'?Object.keys(TIPIF):TIPIF[e.dataset.tipo];
+    const pinta=(sel)=>{ dd.innerHTML=opciones(all,e.textContent).map(o=>'<div'+(o===sel?' class="hl"':'')+'>'+o+'</div>').join(''); };
+    fld.classList.add('cur'); e.classList.add('typing'); pinta(); dd.classList.add('on');
+    await SLEEP(420); if(my!==T(sl)) return false;
+    for(let i=1;i<=q.length;i++){ if(my!==T(sl)) return false; e.textContent=q.slice(0,i); pinta(); await SLEEP(170); }
+    await SLEEP(220); if(my!==T(sl)) return false;
+    pinta(t); await SLEEP(480); if(my!==T(sl)) return false;   // se elige la opción
+    e.classList.remove('typing'); e.textContent=t; dd.classList.remove('on'); fld.classList.remove('cur');
+    await SLEEP(150); return true;
+  }
+  const run=async(sl,st)=>{
+    const my=sl.__t=T(sl)+1, els=[...sl.querySelectorAll('.ty')];
+    closeDD(sl);
+    els.forEach(e=>{ e.classList.remove('typing','calc'); e.textContent=stepOf(e)<st?e.dataset.t:''; });
+    sl.querySelectorAll('.fld.cur,.fld.flash').forEach(f=>f.classList.remove('cur','flash'));
+    await SLEEP(250);
+    const paso=els.filter(e=>stepOf(e)===st);
+    // lo que carga el operador, en orden
+    paso.filter(e=>e.classList.contains('pre')).forEach(e=>{ e.textContent=e.dataset.t; });
+    for(const e of paso.filter(e=>!e.classList.contains('geo')&&!e.classList.contains('pre'))){
+      if(my!==T(sl)) return;
+      if(e.classList.contains('ac')){ if(!await autocompletar(e,my)) return; continue; }
+      const fld=e.closest('.fld'), t=e.dataset.t;
+      if(fld) fld.classList.add('cur');
+      e.classList.add('typing');
+      const sp=t.length>50?9:30;
+      for(let i=1;i<=t.length;i++){ if(my!==T(sl)) return; e.textContent=t.slice(0,i); await SLEEP(sp); }
+      e.classList.remove('typing');
+      if(fld) fld.classList.remove('cur');
+      await SLEEP(140);
+    }
+    // lo que completa el sistema solo, todo junto
+    const geos=paso.filter(e=>e.classList.contains('geo'));
+    if(geos.length){
+      geos.forEach(e=>e.classList.add('calc')); await SLEEP(800); if(my!==T(sl)) return;
+      geos.forEach(e=>{ e.classList.remove('calc'); e.textContent=e.dataset.t; });
+      geos.forEach(e=>{ const f=e.closest('.fld'); if(f){ f.classList.remove('flash'); void f.offsetWidth; f.classList.add('auto'); setTimeout(()=>f.classList.remove('auto'),1200); } });
+    }
+    // paso de la UT: se resalta Comuna
+    if(st===3){ const f=sl.querySelector('.fld.ut-f'); if(f){ void f.offsetWidth; f.classList.add('flash'); } }
+  };
+  // .busy mientras el paso se está cargando (lo usa el modo celular para encadenar los pasos)
+  window.saeType=async(sl,st)=>{
+    sl.classList.add('busy');
+    const p=run(sl,st), mine=T(sl);
+    await p;
+    if(mine===T(sl)) sl.classList.remove('busy');
+    return mine===T(sl);
+  };
+})();
+
+// ---------- mapa de frecuencias (234 barrios) ----------
+const FREQ_N=['Norte 1','Norte 2','Este 1','Este 2','Sur 1','Sur 2','Centro','Oeste'];
+const FREQ_UT=['15','14, 23, 24 bis','7, 9, 13, 17','6, 8','5, 12, 21','4, 11','2, 3','10, 19, 20, 22'];
+const UT2F={15:0,14:1,23:1,24:1,7:2,9:2,13:2,17:2,6:3,8:3,5:4,12:4,21:4,4:5,11:5,2:6,3:6,10:7,19:7,20:7,22:7};
+function buildMap(svg){
+  const M=window.MAPA_FREC, NS='http://www.w3.org/2000/svg'; if(!M||!svg) return null;
+  svg.setAttribute('viewBox','0 0 '+M.w+' '+M.h);
+  const mk=(t,a)=>{ const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e; };
+  const paths=M.barrios.map((b,i)=>{ const p=mk('path',{class:'b',d:b.d}); p._f=UT2F[b.u]; p.style.setProperty('--c','var(--f'+(p._f+1)+')'); p.style.setProperty('--dl',(i*53%480)+'ms'); return p; });
+  for(const u in M.etiquetas){ const t=mk('text',{class:'ul',x:M.etiquetas[u][0],y:M.etiquetas[u][1]}); t.textContent=u==='24'?'24 bis':u; }
+  return {svg,paths};
+}
+function setMap(m,lit,foc,dimRest){
+  if(!m) return;
+  m.paths.forEach(p=>{ const on=lit.has(p._f), f=foc.has(p._f); p.classList.toggle('on',on); p.classList.toggle('foc',f&&!dimRest); p.classList.toggle('off',!!dimRest&&on&&!f); });
+}
+const ALL=new Set([0,1,2,3,4,5,6,7]);
+
+// ---------- personal tech dentro del RugGear (modo oscuro, como en el equipo) ----------
+// nombre de cada canal tal como figura en el RugGear
+const CANAL=n=>{ const i=FREQ_N.indexOf(n); return n.toUpperCase()+' - UT '+FREQ_UT[i].toUpperCase(); };
+(function(){
+  const sv=(d,extra)=>'<svg viewBox="0 0 24 24"'+(extra||'')+'>'+d+'</svg>';
+  const IB=[
+    '<rect x="8" y="9" width="8" height="13" rx="1.5"/><path d="M10 9V4M14 9V6"/>',
+    '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M15 14c3 0 6 1.5 6 5"/>',
+    '<circle cx="12" cy="8" r="3.5"/><path d="M5 21c0-5 3-7 7-7s7 2 7 7"/>',
+    '<path d="M4 5h16v11H9l-5 4z"/>',
+    '<circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/>',
+    '<path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2z M9 4v14M15 6v14"/>'
+  ];
+  const STAR='<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/>';
+  const MIC='<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0h-1.6a4.4 4.4 0 0 1-8.8 0zM11.2 18h1.6v3h-1.6z"/>';
+  function frame(tab,body){
+    return '<img src="media/ruggear-crop.png" alt=""><div class="scr"><div class="pt">'+
+      '<div class="st"><span>15:40</span><span>60%</span></div>'+
+      '<div class="ab"><span class="hb">&#9776;</span><span class="brand">personal tech</span><span class="sr">'+sv('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>')+'</span></div>'+
+      '<div class="ib">'+IB.map((d,i)=>'<i'+(i===tab?' class="on"':'')+'>'+sv(d)+(i===3?'<em>999+</em>':'')+'</i>').join('')+'</div>'+
+      '<div class="vw">'+body+'</div>'+
+      '<div class="ptt"><div class="p">'+sv(MIC)+'<span>PRESIONE PARA HABLAR</span></div><div class="sos">SOS</div></div>'+
+      '</div></div>';
+  }
+  document.querySelectorAll('.rgd[data-pt="canales"]').forEach(d=>{
+    d.innerHTML=frame(1,'<div class="tt">Canales</div><div class="lst">'+FREQ_N.map((n,i)=>
+      '<div class="chn" data-f="1" style="transition-delay:'+(i*70)+'ms"><span class="bx"></span><span class="nm">'+CANAL(n)+'</span><span class="sta">'+sv(STAR)+'</span><span class="chv">'+sv('<path d="M6 9l6 6 6-6"/>')+'</span><span class="sub">Escuchando este canal</span></div>').join('')+'</div>');
+  });
+  document.querySelectorAll('.rgd[data-pt="resumen"]').forEach(d=>{
+    d.innerHTML=frame(0,'<div class="tt">Resumen</div><div class="obj"><div class="dot"></div><small>Objetivo:</small><strong class="oname">Sin canal seleccionado</strong><div class="ok">Conectado</div></div>'+
+      '<div class="me">Garden5 (yo)</div><div class="inf">'+sv('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>')+'<span>Última modulación: Garden5 - <b class="iname">—</b></span></div>');
+  });
+})();
+
+// ---------- video de fondo de cabina y radio: dos <video> que se alternan con fundido ----------
+const REELS=[];
+document.querySelectorAll('.vrole[data-clips]').forEach(sl=>{
+  const clips=sl.dataset.clips.split(';').map(c=>c.split('|'));
+  const vs=[...sl.querySelectorAll('.cv')], tagEl=sl.querySelector('.reel-tag'), tag=tagEl.querySelector('span');
+  let i=0, a=0, on=false, cargado=false;
+  const load=(v,k)=>{ v.poster=clips[k][0]+'.jpg'; v.src=clips[k][0]+'.mp4'; v.load(); };
+  // hasta llegar a la lámina solo se baja la imagen fija (no gasta datos en el celular)
+  vs[0].poster=clips[0][0]+'.jpg'; tag.textContent=clips[0][1];
+  function swap(){
+    if(clips.length<2){ vs[a].currentTime=0; vs[a].play().catch(()=>{}); return; }
+    const cur=vs[a], nxt=vs[1-a]; i=(i+1)%clips.length;
+    nxt.currentTime=0; nxt.play().catch(()=>{});
+    nxt.classList.add('on'); cur.classList.remove('on');
+    tagEl.style.opacity=0; setTimeout(()=>{ tag.textContent=clips[i][1]; tagEl.style.opacity=1; },500);
+    a=1-a; setTimeout(()=>{ cur.pause(); load(cur,(i+1)%clips.length); },1300);   // el que salió precarga el clip siguiente
+  }
+  // el cambio arranca 1,2 s antes del final para que el fundido no muestre el corte
+  vs.forEach(v=>v.addEventListener('timeupdate',()=>{ if(on&&v.classList.contains('on')&&v.duration&&v.currentTime>v.duration-1.2&&!v._sw){ v._sw=true; swap(); setTimeout(()=>v._sw=false,2000); } }));
+  vs.forEach(v=>v.addEventListener('ended',()=>{ if(on&&v.classList.contains('on')) swap(); }));
+  REELS.push({sl,
+    start(){ if(on) return; on=true; if(!cargado){ cargado=true; load(vs[0],0); if(clips.length>1) load(vs[1],1); } vs[a].play().catch(()=>{}); },
+    stop(){ on=false; vs.forEach(v=>v.pause()); }});
+});
+
+// ---------- qué pasa en cada paso de las láminas animadas ----------
+const HOOKS={};
+(function(){
+  const m1=buildMap(document.querySelector('[data-id="frecuencias"] .frecmap'));
+  const REG={2:[0,1],3:[2,3],4:[4,5],5:[6],6:[7]};
+  HOOKS.frecuencias=(f,fwd)=>{
+    if(!m1) return;
+    m1.svg.classList.add('lbl');
+    // al entrar de nuevo a la lámina el mapa vuelve a gris sin animar
+    if(f===1&&fwd){ m1.svg.classList.add('instant'); requestAnimationFrame(()=>requestAnimationFrame(()=>m1.svg.classList.remove('instant'))); }
+    if(f===0||f>=7){ setMap(m1,ALL,new Set(),false); return; }
+    const lit=new Set(); for(let k=2;k<=f;k++) (REG[k]||[]).forEach(x=>lit.add(x));
+    setMap(m1,lit,new Set(REG[f]||[]),false);
+  };
+
+  let sel=-2;
+  HOOKS.ruggear=(f)=>{
+    const s=f===0?1:(f>=3?1:(f>=2?0:-1));
+    const can=document.querySelector('[data-pt="canales"]'), res=document.querySelector('[data-pt="resumen"]');
+    can.querySelectorAll('.chn').forEach((c,i)=>c.classList.toggle('sel',i===s));
+    res.querySelector('.ptt .p').classList.toggle('tx',f===3);
+    can.querySelector('.ptt .p').classList.toggle('tx',f===3);
+    const on=res.querySelector('.oname'), inf=res.querySelector('.inf'), nm=res.querySelector('.iname');
+    if(s!==sel){
+      on.textContent=s<0?'Sin canal seleccionado':CANAL(FREQ_N[s]); nm.textContent=s<0?'—':CANAL(FREQ_N[s]);
+      on.classList.remove('swap'); void on.offsetWidth; if(s>=0) on.classList.add('swap');
+      inf.classList.remove('flash'); void inf.offsetWidth; if(s>=0) inf.classList.add('flash');
+      if(s>=0){ const c=can.querySelectorAll('.chn')[s]; c.classList.add('tap'); setTimeout(()=>c.classList.remove('tap'),350); }
+      sel=s;
+    }
+  };
+
+  // gracias: el mapa recorre las 8 frecuencias
+  const m2=buildMap(document.querySelector('.fin-map'));
+  if(m2){
+    m2.svg.classList.add('lbl');
+    const tk=document.querySelector('.fin .tk'), led=document.querySelector('.fin .led');
+    let i=-1;
+    const fin=document.querySelector('[data-id="gracias"]');
+    // solo se mueve si el cierre está a la vista
+    const visible=()=>fin.classList.contains('on')||(document.body.classList.contains('doc')&&fin.dataset.vis==='1');
+    const tick=()=>{ if(!visible()) return; i=(i+1)%8; setMap(m2,ALL,new Set([i]),true); tk.innerHTML='<b>'+FREQ_N[i]+'</b> · UT '+FREQ_UT[i]; led.style.setProperty('--c','var(--f'+(i+1)+')'); };
+    setMap(m2,ALL,new Set(),false);
+    let iv=null;
+    HOOKS.gracias=()=>{ if(!iv){ setTimeout(tick,900); iv=setInterval(tick,1900); } };
+  }
+})();
+
+// ---------- navegación ----------
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const N=slides.length;
+  let cur=0, frag=0;
+  const isDoc=()=>innerWidth<820 || innerHeight<480 || innerHeight>innerWidth*1.05;
+
+  function layout(){
+    const doc=isDoc();
+    document.body.classList.toggle('doc',doc);
+    if(!doc){ const s=Math.min(innerWidth/1600, innerHeight/900); stage.style.transform='translate(-50%,-50%) scale('+s+')'; }
+    fitSae();
+  }
+  // en modo documento la réplica del SAE (1424 px de ancho) se achica hasta entrar en la pantalla
+  function fitSae(){
+    const doc=document.body.classList.contains('doc');
+    document.querySelectorAll('.sae-wrap').forEach(w=>{
+      const sae=w.querySelector('.sae');
+      // .big = ampliada con un toque (se recorre de costado)
+      if(doc){ const fit=Math.min(1,w.clientWidth/1424); sae.style.width='1424px'; sae.style.zoom=w.classList.contains('big')?Math.max(fit,.62):fit; }
+      else { sae.style.width=''; sae.style.zoom=''; w.classList.remove('big'); }
+    });
+  }
+  // retardo escalonado de las animaciones de entrada
+  slides.forEach(s=>{ let i=0; s.querySelectorAll('[data-a]').forEach(el=>el.style.setProperty('--d',i++)); });
+
+  const frags=i=>document.body.classList.contains('doc')?[]:[...new Set([...slides[i].querySelectorAll('[data-f]')].map(e=>+e.dataset.f))].sort((a,b)=>a-b);
+  // .now marca el paso actual (pasos de la réplica y su explicación)
+  // fwd: se llegó avanzando (en la réplica se tipea); si no, todo aparece de una
+  function applyFrags(fwd){
+    const sl=slides[cur], doc=document.body.classList.contains('doc');
+    if(doc) return;   // en modo documento manda docInit / autoplay
+    sl.querySelectorAll('[data-f]').forEach(e=>{ e.classList.toggle('dim', +e.dataset.f>frag); e.classList.toggle('now', +e.dataset.f===frag); });
+    sl.querySelectorAll('.sae .fld.ut-f').forEach(f=>f.classList.toggle('ut', doc||frag>=3));
+    if(sl.classList.contains('s-sae')){ if(fwd&&!doc) window.saeType(sl,frag); else window.saeFill(sl,doc?99:frag); }
+    const h=HOOKS[sl.dataset.id]; if(h) h(doc?0:frag,fwd);
+  }
+  // ---------- modo documento (celular): todo visible y las animaciones arrancan al llegar con el scroll ----------
+  const SLEEP=ms=>new Promise(r=>setTimeout(r,ms));
+  const ANIM='.s-sae,[data-id="frecuencias"],[data-id="ruggear"],[data-id="gracias"]';
+  function finalState(s){
+    s._tok=(s._tok||0)+1; s._playing=false; s.classList.remove('playing');
+    s.querySelectorAll('[data-f]').forEach(e=>e.classList.remove('dim','now','pend'));
+    if(s.classList.contains('s-sae')) window.saeFill(s,99);
+    const h=HOOKS[s.dataset.id]; if(h&&s.dataset.id!=='gracias') h(0,false);
+    if(s.dataset.id==='gracias') s.dataset.vis='0';
+  }
+  async function autoplay(s){
+    const my=s._tok=(s._tok||0)+1; s._playing=true;
+    const ok=()=>s._tok===my&&document.body.classList.contains('doc');
+    // pend = todavía no llegó su paso (en modo documento no se usa .dim)
+    const mark=st=>s.querySelectorAll('[data-f]').forEach(e=>{ e.classList.toggle('now',+e.dataset.f===st); if(e.closest('.sae,.pt')||e.classList.contains('freg')) e.classList.toggle('pend',+e.dataset.f>st); });
+    const id=s.dataset.id;
+    if(s.classList.contains('s-sae')){
+      s.classList.add('playing');
+      for(let st=1;st<=5;st++){
+        if(!ok()) return; mark(st);
+        const ut=s.querySelector('.fld.ut-f'); if(ut) ut.classList.toggle('ut',st>=3);
+        if(!await window.saeType(s,st)||!ok()) return;
+        await SLEEP(st===5?2500:1000);
+      }
+      if(!ok()) return;
+      s.classList.remove('playing'); s.querySelectorAll('.now').forEach(e=>e.classList.remove('now'));
+    } else if(id==='frecuencias'){
+      for(let f=1;f<=7;f++){ if(!ok()) return; mark(f); HOOKS.frecuencias(f,f===1); await SLEEP(f===1?900:1400); }
+    } else if(id==='ruggear'){
+      for(let f=1;f<=3;f++){ if(!ok()) return; mark(f); HOOKS.ruggear(f); await SLEEP(f===1?1200:2400); }
+    } else if(id==='gracias'){ s.dataset.vis='1'; HOOKS.gracias&&HOOKS.gracias(); return; }
+    if(s._tok===my) s._playing=false;
+  }
+  let io=null;
+  function docInit(){
+    slides.forEach(finalState);
+    fitSae();
+    REELS.forEach(r=>r.stop());
+    if(io||!('IntersectionObserver' in window)) return;
+    // en modo documento el video corre mientras su lámina se ve en pantalla
+    const rio=new IntersectionObserver(es=>es.forEach(en=>{
+      const r=REELS.find(x=>x.sl===en.target); if(!r||!document.body.classList.contains('doc')) return;
+      en.isIntersecting?r.start():r.stop();
+    }),{threshold:.25});
+    REELS.forEach(r=>rio.observe(r.sl));
+    // se observa lo que se anima (réplica, mapa, equipos), no la lámina entera
+    io=new IntersectionObserver(es=>es.forEach(en=>{
+      const s=en.target._slide; if(!document.body.classList.contains('doc')) return;
+      if(en.isIntersecting){ if(!s._playing) autoplay(s); }
+      else if(s._playing||s.dataset.vis==='1') finalState(s);   // al salir de la pantalla queda completa
+    }),{threshold:.5});
+    slides.forEach(s=>{ if(!s.matches(ANIM)) return; const t=s.querySelector('.sae-wrap,.frecmap,.devs')||s; t._slide=s; io.observe(t); });
+    // tocar la réplica del SAE la amplía o la vuelve a achicar
+    document.querySelectorAll('.sae-wrap').forEach(w=>w.addEventListener('click',()=>{
+      if(!document.body.classList.contains('doc')) return;
+      w.classList.toggle('big'); fitSae();
+      const hint=w.parentElement.querySelector('.zoomhint'); if(hint) hint.textContent=w.classList.contains('big')?'Deslizá de costado para recorrerla · tocá para achicarla':'Tocá la pantalla del SAE para ampliarla';
+    }));
+  }
+
+  // reinicia las animaciones de entrada sin forzar un recálculo sincrónico de la página
+  function play(s){ s.classList.remove('play'); requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(s.classList.contains('on')) s.classList.add('play'); })); }
+
+  function show(i,f){
+    cur=Math.max(0,Math.min(N-1,i));
+    slides.forEach((s,k)=>s.classList.toggle('on',k===cur));
+    play(slides[cur]);
+    const fs=frags(cur); frag = f==='end' ? (fs.length?fs[fs.length-1]:0) : (fs.length?fs[0]:0);
+    applyFrags(f!=='end');
+    // los videos de fondo solo corren en la lámina que está a la vista
+    if(!document.body.classList.contains('doc')) REELS.forEach(r=>r.sl===slides[cur]?r.start():r.stop());
+    document.getElementById('count').textContent=(cur+1)+' / '+N;
+    document.getElementById('progress').style.width=((cur+1)/N*100)+'%';
+    try{history.replaceState(null,'','#s'+(cur+1))}catch(e){}
+  }
+  function next(){ const fs=frags(cur), nx=fs.find(x=>x>frag); if(nx!==undefined){frag=nx;applyFrags(true)} else if(cur<N-1) show(cur+1) }
+  function prev(){ const fs=frags(cur), pv=[...fs].reverse().find(x=>x<frag); if(pv!==undefined){frag=pv;applyFrags(false)} else if(cur>0) show(cur-1,'end') }
+  // si el navegador no deja pasar a pantalla completa, avisamos que use F11
+  let toastT; function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),3500); }
+  const noFS=()=>toast('Este navegador no permite pantalla completa desde la página: presioná F11');
+  function toggleFS(){
+    try{
+      if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen().catch(noFS);
+        setTimeout(()=>{ if(!document.fullscreenElement) noFS() },900);
+      } else document.exitFullscreen().catch(()=>{});
+    }catch(e){ noFS() }
+  }
+
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();next()}
+    else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();prev()}
+    else if(e.key==='Home') show(0);
+    else if(e.key==='End') show(N-1);
+    else if(e.key==='f'||e.key==='F') toggleFS();
+  });
+  document.getElementById('next').onclick=next;
+  document.getElementById('prev').onclick=prev;
+  document.getElementById('fs').onclick=toggleFS;
+  addEventListener('resize',()=>{
+    const was=document.body.classList.contains('doc'); layout();
+    if(document.body.classList.contains('doc')){ if(!was) docInit(); }
+    else { if(was) slides.forEach(s=>{ s._tok=(s._tok||0)+1; s._playing=false; s.querySelectorAll('.pend').forEach(e=>e.classList.remove('pend')); }); show(cur,'end'); }
+  });
+
+  // pantallas táctiles en modo presentación: deslizar o tocar un costado
+  let tx=null, ty=0;
+  addEventListener('touchstart',e=>{ if(document.body.classList.contains('doc')||e.target.closest('.hud')) { tx=null; return; } tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  addEventListener('touchend',e=>{
+    if(tx===null) return;
+    const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty, x=e.changedTouches[0].clientX; tx=null;
+    if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.3){ dx<0?next():prev(); }
+    else if(Math.abs(dx)<10&&Math.abs(dy)<10){ if(x>innerWidth*.62) next(); else if(x<innerWidth*.38) prev(); }
+  },{passive:true});
+
+  let idleT; function wake(){document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),2500)}
+  addEventListener('mousemove',wake); wake();
+
+  layout();
+  if(document.body.classList.contains('doc')) docInit();
+  const h=+(location.hash.match(/^#s(\d+)/)||[])[1];
+  show(h?h-1:0);
+})();
+</script>
+</body>
+</html>
