@@ -15,6 +15,7 @@ Abrí `index.html` en el navegador. Se avanza con ← → (o deslizando en panta
 | `config-vivo.js` | Supabase, el canal, la clave pública y la clave del expositor cifrada con la contraseña. |
 | `Division de Frecuencia - Cordobeses en Alerta.pdf` | El material para descargar (botón al final de la presentación y de la guía). |
 | `print/material.html` | El HTML del que sale el PDF, con sus imágenes en `print/img/`. |
+| `print/afiche-qr.html` | El afiche A4 en blanco y negro con el QR de la guía, que da `print/afiche-qr-bn.pdf` (para impresora láser). |
 | `media/mapa-frec.js` | Los 234 barrios del programa con su UT, para el mapa de frecuencias. |
 | `media/video/` | Videos de fondo de las láminas de cabina y radio (MP4 1280×720 sin audio, con su imagen fija). |
 | `media/fotos/sala.jpg` | Foto de la sala para la portada. |
