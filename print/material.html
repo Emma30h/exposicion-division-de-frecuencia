@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Material · División de Frecuencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Material impreso con la identidad de la presentación. Para que lo muestre cualquier visor de PDF:
+   imágenes planas (JPEG, sin transparencias) sobre fondo liso, sin degradados ni filtros */
+@page{size:A4;margin:0}
+:root{
+  --bg:#0a1219; --panel:#101c26; --panel-2:#152330; --line:#22343f;
+  --fg:#e8eef2; --muted:#93a6b4; --faint:#5f7484;
+  --brand:#42ade8; --signal:#e2a23b; --ok:#2fbf62;
+  --f1:#3276c7; --f2:#79a8de; --f3:#ac7505; --f4:#cfa952; --f5:#b74873; --f6:#d087a6; --f7:#1c9144; --f8:#8564c3;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--bg)}
+body{font-family:var(--f-body);color:var(--fg);background:var(--bg)}
+.page{width:210mm;height:297mm;padding:12mm 13mm 10mm;position:relative;display:flex;flex-direction:column;gap:5mm;page-break-after:always;overflow:hidden;background:var(--bg)}
+.page:last-child{page-break-after:auto}
+b{font-weight:600;color:var(--fg)}
+.kick{font-family:var(--f-mono);font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:var(--brand)}
+.mini{display:flex;align-items:center;gap:3mm;font-family:var(--f-mono);font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding-bottom:3mm;border-bottom:.3mm solid var(--line)}
+.mini img{width:10mm}
+.mini span:last-child{margin-left:auto}
+.pie{margin-top:auto;display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:7pt;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-top:.3mm solid var(--line);padding-top:2.5mm}
+h2{font-family:var(--f-display);font-weight:700;font-size:24pt;line-height:1;margin-top:1mm}
+.lead2{font-size:10.5pt;line-height:1.45;color:var(--muted);margin-top:2mm}
+.panel{background:var(--panel);border:.3mm solid var(--line);border-radius:3mm}
+.nota{font-size:9.5pt;line-height:1.4;color:var(--muted);background:var(--panel);border-left:1mm solid var(--signal);padding:2.6mm 3.4mm;border-radius:0 2mm 2mm 0}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:7pt;letter-spacing:.1em;text-transform:uppercase;padding:.8mm 2mm;border-radius:1mm;border:.3mm solid var(--brand);color:var(--brand);margin-bottom:2mm}
+.tag.a{border-color:var(--signal);color:var(--signal)}
+
+/* ---------- portada ---------- */
+.cov .logo{width:24mm;margin-bottom:4mm}
+.cov .badge,.cov .kick{align-self:flex-start}
+.badge{display:inline-block;font-family:var(--f-mono);font-size:8pt;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);border:.3mm solid var(--signal);padding:1.6mm 3mm;border-radius:1.4mm;margin:3mm 0 4mm}
+.cov h1{font-family:var(--f-display);font-weight:700;font-size:48pt;line-height:.9;text-transform:uppercase}
+.cov h1 span{color:var(--brand)}
+.cov .lead{font-size:11.5pt;line-height:1.45;color:var(--muted);margin-top:4mm;max-width:150mm}
+.indice{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:1mm}
+.indice div{padding:3.5mm 3.5mm 4mm}
+.indice i{display:block;font-style:normal;font-family:var(--f-display);font-weight:700;font-size:20pt;color:var(--brand);line-height:1}
+.indice b{display:block;font-family:var(--f-display);font-size:12.5pt;margin-top:1.5mm;line-height:1.1}
+.indice small{display:block;font-size:8.5pt;color:var(--muted);line-height:1.3;margin-top:1mm}
+.flujo{padding:6mm 6mm 6mm}
+.flujo h3{font-family:var(--f-display);font-weight:700;font-size:18pt;margin:1.5mm 0 6mm}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);position:relative}
+.flow::before{content:"";position:absolute;left:10%;right:10%;top:9mm;border-top:.5mm dotted var(--faint)}
+.st{display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;padding:0 1.5mm}
+.st .c{width:18mm;height:18mm;border-radius:50%;border:.5mm solid var(--brand);color:var(--brand);background:var(--panel);display:grid;place-items:center;position:relative}
+.st .c svg{width:8.5mm;height:8.5mm;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.st.end .c{border-color:var(--signal);color:var(--signal)}
+.st em{font-style:normal;font-family:var(--f-mono);font-size:6.8pt;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);margin-top:3mm}
+.st.end em{color:var(--signal)}
+.st b{font-family:var(--f-display);font-weight:700;font-size:12.5pt;margin-top:1mm;line-height:1.05}
+.roles{display:grid;grid-template-columns:repeat(5,1fr);margin-top:5mm;font-family:var(--f-mono);font-size:7pt;letter-spacing:.1em;text-transform:uppercase}
+.roles span{border-top:.5mm solid;padding-top:1.5mm;text-align:center}
+.roles .c{grid-column:2/4;color:var(--brand)}.roles .r{color:var(--signal)}.roles .m{color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.kpis div{padding:4mm 4.5mm}
+.kpis i{display:block;font-style:normal;font-family:var(--f-display);font-weight:700;font-size:30pt;line-height:1;color:var(--brand)}
+.kpis b{display:block;font-family:var(--f-display);font-size:13pt;margin-top:1.5mm}
+.kpis small{display:block;font-size:8.8pt;color:var(--muted);line-height:1.35;margin-top:.8mm}
+
+/* ---------- frecuencias ---------- */
+.frec{display:grid;grid-template-columns:86mm 1fr;gap:6mm;align-items:start}
+.frec img{width:86mm;display:block;border-radius:2.5mm;border:.3mm solid var(--line)}
+.tabla{display:flex;flex-direction:column}
+.reg{display:grid;grid-template-columns:17mm 1fr;gap:2mm;align-items:center;padding:2.2mm 0;border-top:.3mm solid var(--line)}
+.reg:first-child{border-top:0}
+.reg .z{font-family:var(--f-mono);font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase}
+.fr{display:flex;align-items:center;gap:2.5mm;padding:.8mm 0}
+.fr i{width:4mm;height:4mm;border-radius:.8mm;flex:none}
+.fr b{font-family:var(--f-display);font-size:13pt;width:19mm}
+.fr span{font-size:9.5pt;color:var(--muted)}
+.rg{display:grid;grid-template-columns:78mm 1fr;gap:6mm;align-items:center}
+.rg img{width:78mm;display:block}
+.pts{display:flex;flex-direction:column;gap:2.2mm}
+ol.pts{list-style:none;counter-reset:p}
+ol.pts li{position:relative;padding:2.4mm 3mm 2.4mm 11mm;font-size:10pt;line-height:1.4;color:var(--muted);background:var(--panel);border-radius:2mm}
+ol.pts li::before{counter-increment:p;content:counter(p);position:absolute;left:2.6mm;top:2.2mm;width:5.6mm;height:5.6mm;border-radius:50%;background:var(--brand);color:var(--bg);font-family:var(--f-mono);font-size:8pt;font-weight:500;display:grid;place-items:center}
+ol.pts.a li::before{background:var(--signal)}
+
+/* ---------- funciones ---------- */
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.rol{overflow:hidden}
+.rol img{width:100%;height:42mm;object-fit:cover;display:block}
+.rol .in{padding:4mm 4.5mm 4.5mm}
+.rol h3{font-family:var(--f-display);font-weight:700;font-size:17pt;margin-bottom:3mm}
+.rol .nota{margin-top:3mm;font-size:8.8pt}
+.tiempos{padding:5mm 5.5mm}
+.tiempos h3{font-family:var(--f-display);font-weight:700;font-size:17pt;margin:1mm 0 4mm}
+.chat{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-bottom:5mm}
+.bub{padding:3mm 3.5mm;border-radius:3mm 3mm 3mm .8mm;background:var(--panel-2);font-size:9.5pt;line-height:1.4;color:var(--muted)}
+.bub em{display:block;font-style:normal;font-family:var(--f-mono);font-size:7pt;letter-spacing:.1em;text-transform:uppercase;margin-top:1.5mm;color:var(--faint)}
+.bub.go{border:.4mm solid var(--signal);color:var(--fg)}
+.bub.go em{color:var(--signal)}
+.bar{position:relative;height:4mm;border-radius:2mm;background:var(--panel-2);border:.3mm solid var(--line);margin:9mm 0 2mm}
+.bar .c{position:absolute;left:0;top:0;bottom:0;width:26%;background:var(--brand);border-radius:2mm 0 0 2mm}
+.bar .r{position:absolute;left:26%;top:0;bottom:0;width:48%;background:var(--signal)}
+.tk{position:absolute;bottom:5.5mm;font-family:var(--f-display);font-weight:700;font-size:13pt;white-space:nowrap;transform:translateX(-50%)}
+.tk.t0{transform:none}
+.lanes{display:grid;grid-template-columns:26% 48% 26%;margin-top:3mm}
+.lanes div{padding-right:3mm}
+.lanes small{display:block;font-family:var(--f-mono);font-size:7pt;letter-spacing:.1em;text-transform:uppercase;margin-bottom:1mm}
+.lanes .c small{color:var(--brand)}.lanes .r small{color:var(--signal)}.lanes .m small{color:var(--muted)}
+.lanes p{font-size:9pt;line-height:1.35;color:var(--muted)}
+
+/* ---------- SAE ---------- */
+.sae{width:100%;display:block;border-radius:2mm;border:.3mm solid var(--line)}
+.ejes{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.ej{padding:4mm 4.5mm}
+.ej .u{font-family:var(--f-display);font-weight:700;font-size:19pt;line-height:1}
+.ej .u span{color:var(--signal)}
+.ej p{font-size:9pt;color:var(--muted);line-height:1.4;margin-top:1.5mm}
+.cierre{display:grid;grid-template-columns:1fr 34mm;gap:5mm;align-items:center;padding:4.5mm 5mm}
+.cierre h3{font-family:var(--f-display);font-weight:700;font-size:17pt;margin-bottom:1.5mm}
+.cierre p{font-size:9.5pt;color:var(--muted);line-height:1.45}
+.cierre img{width:34mm;height:34mm;display:block;border-radius:1.5mm}
+.cierre code{font-family:var(--f-mono);font-size:8pt;color:var(--brand)}
+</style>
+</head>
+<body>
+
+<!-- ============ 1 · PORTADA ============ -->
+<section class="page cov">
+  <img class="logo" src="img/logo_ojo_oscuro.png" alt="Ojos en Alerta">
+  <div class="kick">Dirección Monitoreo Cordobeses en Alerta</div>
+  <div class="badge">Material de la exposición</div>
+  <h1>División<br><span>de Frecuencia</span></h1>
+  <p class="lead">Cómo se reparte la ciudad en 8 frecuencias RugGear, qué hace el operador de cabina y qué hace el radio operador, y cuánto tiempo tiene cada parte.</p>
+
+  <div class="indice">
+    <div class="panel"><i>01</i><b>Las 8 frecuencias</b><small>La UT del hecho define a cuál se irradia.</small></div>
+    <div class="panel"><i>02</i><b>Funciones</b><small>Operador de cabina y radio operador.</small></div>
+    <div class="panel"><i>03</i><b>Tiempos</b><small>Desde cuándo corre y cuánto dura cada parte.</small></div>
+    <div class="panel"><i>04</i><b>Carga en el SAE WEB</b><small>Un hecho de ejemplo, paso a paso.</small></div>
+  </div>
+
+  <div class="flujo panel">
+    <div class="kick">Recorrido de un hecho</div>
+    <h3>Del mensaje del vecino al móvil en la calle</h3>
+    <div class="flow">
+      <div class="st"><span class="c"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 10h6M9 13.5h4"/></svg></span><em>Vecino</em><b>Explica su situación</b></div>
+      <div class="st"><span class="c"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4M7 9h6M7 12h10"/></svg></span><em>Cabina</em><b>Crea la carta en el SAE WEB</b></div>
+      <div class="st"><span class="c"><svg viewBox="0 0 24 24"><rect x="7" y="6" width="10" height="16" rx="2"/><path d="M10 6V2M10 11h4M10 14h4"/><path d="M19 5a6 6 0 0 1 0 8"/></svg></span><em>Cabina</em><b>Irradia a la frecuencia</b></div>
+      <div class="st"><span class="c"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg></span><em>Radio</em><b>Despacha y asigna el móvil</b></div>
+      <div class="st end"><span class="c"><svg viewBox="0 0 24 24"><path d="M3 16V11l2-5h11l3 5h2v5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6M5 11h14"/></svg></span><em>Calle</em><b>El móvil arriba</b></div>
+    </div>
+    <div class="roles"><span></span><span class="c">Operador de cabina</span><span class="r">Radio operador</span><span class="m">Calle</span></div>
+  </div>
+
+  <div class="kpis">
+    <div class="panel"><i>1 min</i><b>Operador de cabina</b><small>Interpreta el hecho, crea la carta e irradia a la frecuencia.</small></div>
+    <div class="panel"><i>1 a 3 min</i><b>Hasta asignar el móvil</b><small>Entre lo que hace la cabina y el radio operador.</small></div>
+    <div class="panel"><i>8</i><b>Frecuencias RugGear</b><small>Norte 1 y 2 · Este 1 y 2 · Sur 1 y 2 · Centro · Oeste.</small></div>
+  </div>
+
+  <div class="pie"><span>Policía de la Provincia de Córdoba · Ministerio de Seguridad</span><span>1 / 4</span></div>
+</section>
+
+<!-- ============ 2 · FRECUENCIAS ============ -->
+<section class="page">
+  <div class="mini"><img src="img/logo_ojo_oscuro.png" alt=""><span>División de Frecuencia</span><span>01 · Las 8 frecuencias</span></div>
+  <div>
+    <div class="kick">División de frecuencia</div>
+    <h2>La frecuencia la define la UT del hecho</h2>
+    <p class="lead2">La ciudad se dividió en 8 frecuencias. Cada una agrupa una o varias UT (DJP): el hecho se irradia a la frecuencia de su UT.</p>
+  </div>
+  <div class="frec">
+    <img src="img/mapa.jpg" alt="Mapa de los 234 barrios del programa pintados según su frecuencia">
+    <div>
+      <div class="tabla">
+        <div class="reg"><div class="z" style="color:var(--f1)">Norte</div><div><div class="fr"><i style="background:var(--f1)"></i><b>Norte 1</b><span>UT 15</span></div><div class="fr"><i style="background:var(--f2)"></i><b>Norte 2</b><span>UT 14 · 23 · 24 bis</span></div></div></div>
+        <div class="reg"><div class="z" style="color:var(--f3)">Este</div><div><div class="fr"><i style="background:var(--f3)"></i><b>Este 1</b><span>UT 7 · 9 · 13 · 17</span></div><div class="fr"><i style="background:var(--f4)"></i><b>Este 2</b><span>UT 6 · 8</span></div></div></div>
+        <div class="reg"><div class="z" style="color:var(--f5)">Sur</div><div><div class="fr"><i style="background:var(--f5)"></i><b>Sur 1</b><span>UT 5 · 12 · 21</span></div><div class="fr"><i style="background:var(--f6)"></i><b>Sur 2</b><span>UT 4 · 11</span></div></div></div>
+        <div class="reg"><div class="z" style="color:var(--f7)">Centro</div><div><div class="fr"><i style="background:var(--f7)"></i><b>Centro</b><span>UT 2 · 3</span></div></div></div>
+        <div class="reg"><div class="z" style="color:var(--f8)">Oeste</div><div><div class="fr"><i style="background:var(--f8)"></i><b>Oeste</b><span>UT 10 · 19 · 20 · 22</span></div></div></div>
+      </div>
+      <div class="nota" style="margin-top:4mm">En el SAE WEB la UT figura en el campo <b>Comuna</b> como <b>«DISTRITO»</b>. Un cuadrante puede tener varias frecuencias: lo que manda es la <b>UT</b>.</div>
+    </div>
+  </div>
+  <div class="rg panel" style="padding:4mm 5mm">
+    <img src="img/ruggear.jpg" alt="Canales y Resumen de personal tech en el RugGear">
+    <div>
+      <span class="tag">RugGear · personal tech</span>
+      <h2 style="font-size:19pt;margin-bottom:4mm">Cada frecuencia es un canal</h2>
+      <ol class="pts">
+        <li>En <b>Canales</b> figuran las 8, con las UT que abarca cada una: <b>NORTE 1 - UT 15</b>.</li>
+        <li>Se marca el canal de la UT del hecho: queda <b>«Escuchando este canal»</b>.</li>
+        <li>En <b>Resumen</b> aparece como <b>Objetivo</b> y abajo, en la última modulación.</li>
+        <li>Con <b>Presione para hablar</b> se irradia el hecho a esa frecuencia.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="pie"><span>Policía de la Provincia de Córdoba · Ministerio de Seguridad</span><span>2 / 4</span></div>
+</section>
+
+<!-- ============ 3 · FUNCIONES Y TIEMPOS ============ -->
+<section class="page">
+  <div class="mini"><img src="img/logo_ojo_oscuro.png" alt=""><span>División de Frecuencia</span><span>02 · Funciones · 03 · Tiempos</span></div>
+  <div>
+    <div class="kick">Funciones</div>
+    <h2>Dos roles, un mismo hecho</h2>
+  </div>
+  <div class="dosc">
+    <div class="rol panel">
+      <img src="img/foto_cabina.jpg" alt="">
+      <div class="in">
+        <span class="tag">Operador de cabina</span>
+        <h3>Crea la carta e irradia</h3>
+        <ol class="pts">
+          <li><b>Ingresa la alerta</b> e interpreta el hecho.</li>
+          <li><b>Crea la carta</b>: teléfono y calle con la altura; el sistema completa el resto.</li>
+          <li><b>Mira la UT</b> en el campo Comuna.</li>
+          <li><b>Irradia</b> por RugGear a la frecuencia de esa UT.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="rol panel">
+      <img src="img/foto_radio.jpg" alt="">
+      <div class="in">
+        <span class="tag a">Radio operador</span>
+        <h3>Despacha y asigna el móvil</h3>
+        <ol class="pts a">
+          <li>Trabaja <b>su frecuencia</b>: solo las UT que le corresponden.</li>
+          <li><b>Recibe la carta</b> que le irradió la cabina.</li>
+          <li><b>Despacha y asigna</b> el móvil de la zona.</li>
+          <li><b>Deja constancia</b> y eleva la asignación.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div class="tiempos panel">
+    <div class="kick">Tiempos</div>
+    <h3>El tiempo corre desde que el vecino explica su situación</h3>
+    <div class="chat">
+      <div class="bub">«Hola, buenas tardes.»<em>No cuenta</em></div>
+      <div class="bub go">«Hay un señor mayor en la esquina, está desorientado…»<em>Arranca el tiempo</em></div>
+    </div>
+    <div class="bar"><span class="c"></span><span class="r"></span>
+      <span class="tk t0" style="left:0">0</span><span class="tk" style="left:26%">1 min</span><span class="tk" style="left:74%">1 a 3 min</span></div>
+    <div class="lanes">
+      <div class="c"><small>Operador de cabina</small><p>Interpreta, crea la carta e irradia. Crear la carta y designar la frecuencia van en simultáneo.</p></div>
+      <div class="r"><small>Radio operador</small><p>Abre la carta, despacha y asigna el móvil. Cada paso queda registrado con hora en el SAE WEB.</p></div>
+      <div class="m"><small>Calle</small><p>Arribo del móvil al lugar del hecho.</p></div>
+    </div>
+  </div>
+  <div class="pie"><span>Policía de la Provincia de Córdoba · Ministerio de Seguridad</span><span>3 / 4</span></div>
+</section>
+
+<!-- ============ 4 · SAE WEB ============ -->
+<section class="page">
+  <div class="mini"><img src="img/logo_ojo_oscuro.png" alt=""><span>División de Frecuencia</span><span>04 · Carga en el SAE WEB</span></div>
+  <div>
+    <div class="kick">Así se carga</div>
+    <h2>Un hecho de ejemplo en el SAE WEB</h2>
+    <p class="lead2">Réplica con datos ficticios, con fines de capacitación.</p>
+  </div>
+  <img class="sae" src="img/sae.jpg" alt="Réplica del SAE WEB con un hecho de ejemplo en la UT 15">
+  <ol class="pts">
+    <li><b>Teléfono</b> del vecino.</li>
+    <li><b>Calle con la altura</b>: el sistema completa solo la geolocalización, la cuadrícula, la comisaría y la comuna.</li>
+    <li>En <b>Comuna</b> aparece la UT del hecho: <b>DISTRITO 15</b>.</li>
+    <li><b>Relato</b>; tipo y subtipo se eligen del <b>desplegable</b> mientras se escribe. La prioridad viene dada.</li>
+    <li>Con la UT a la vista, se <b>irradia</b> a la frecuencia que corresponde.</li>
+  </ol>
+  <div class="ejes">
+    <div class="ej panel"><div class="u">UT 15 <span>→</span> NORTE 1</div><p>La frecuencia Norte 1 abarca una sola UT.</p></div>
+    <div class="ej panel"><div class="u">UT 14 <span>→</span> NORTE 2</div><p>Norte 2 abarca tres UT: 14, 23 y 24 bis. Una frecuencia puede tener varias UT.</p></div>
+  </div>
+  <div class="cierre panel">
+    <div>
+      <h3>La presentación completa</h3>
+      <p>Escaneá el código para volver a ver la exposición, con el mapa animado y las réplicas del SAE WEB y del RugGear.</p>
+      <code>exposicion-division-de-frecuencia.vercel.app</code>
+    </div>
+    <img src="img/qr.jpg" alt="Código QR de la presentación">
+  </div>
+  <div class="pie"><span>Policía de la Provincia de Córdoba · Ministerio de Seguridad</span><span>4 / 4</span></div>
+</section>
+
+</body>
+</html>
