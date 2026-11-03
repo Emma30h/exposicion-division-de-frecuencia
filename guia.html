@@ -189,7 +189,6 @@ const fr=(c,n,u)=>`<span class="f"><i style="background:var(${c})"></i><b>${n}</
    o: pasos que se resaltan a medida que el expositor avanza (off: en qué paso de la lámina empieza el primero) */
 const L=[
  {id:'portada',t:'División de Frecuencia',pre:radar,b:['Cómo se reparte la ciudad en <b>8 frecuencias</b>.','Qué hace el <b>operador de cabina</b> y qué hace el <b>radio operador</b>.','Cuánto tiempo tiene cada parte.','Esta guía avanza sola junto con la exposición.']},
- {id:'por-que',t:'Por qué medimos',x:()=>`<div class="trio" data-a><div><b>1'</b><small>operador de cabina</small></div><div><b>1–3'</b><small>hasta asignar el móvil</small></div><div><b>8</b><small>frecuencias</small></div></div>`,b:['Cada hecho deja su recorrido en el <b>SAE WEB</b>, con hora en cada paso.','Se va a medir <b>cuánto tarda en comisionarse</b> cada hecho.']},
  {id:'frecuencias',k:'División de frecuencia',t:'La frecuencia la define la UT',cls:'fq',off:2,o:[
    `<span class="reg">Norte</span>${fr('--f1','Norte 1','15')}${fr('--f2','Norte 2','14 · 23 · 24 bis')}`,
    `<span class="reg">Este</span>${fr('--f3','Este 1','7 · 9 · 13 · 17')}${fr('--f4','Este 2','6 · 8')}`,
@@ -197,6 +196,7 @@ const L=[
    `<span class="reg">Centro</span>${fr('--f7','Centro','2 · 3')}`,
    `<span class="reg">Oeste</span>${fr('--f8','Oeste','10 · 19 · 20 · 22')}`],
    tip:'En el SAE WEB la UT figura en <b>Comuna</b> como «DISTRITO».'},
+ {id:'por-que',t:'Por qué medimos',x:()=>`<div class="trio" data-a><div><b>1'</b><small>operador de cabina</small></div><div><b>1–3'</b><small>hasta asignar el móvil</small></div><div><b>8</b><small>frecuencias</small></div></div>`,b:['Cada hecho deja su recorrido en el <b>SAE WEB</b>, con hora en cada paso.','Se va a medir <b>cuánto tarda en comisionarse</b> cada hecho.']},
  {id:'ruggear',k:'RugGear',t:'Cada frecuencia es un canal',o:['Los canales llevan la frecuencia y sus UT: <b>NORTE 1 - UT 15</b>.','Se elige el canal de la UT del hecho.','Otra UT, otro canal: <b>UT 14 → NORTE 2</b>. Se irradia con <b>Presione para hablar</b>.']},
  {id:'recorrido',t:'Del mensaje al móvil',x:()=>`<div class="steps" data-a>${[['msg','Vecino','Explica su situación'],['sae','Cabina','Crea la carta en el SAE WEB'],['radio','Cabina','Irradia a la frecuencia'],['user','Radio','Despacha y asigna el móvil'],['car','Calle','El móvil arriba']].map(([ic,a,t],i)=>`<div class="stp${i===4?' end':''}"><span class="dot">${I(ic)}</span><small>${a}</small><p>${t}</p></div>`).join('')}</div>`},
  {id:'cabina',k:'Funciones',t:'Operador de cabina',o:['<b>Ingresa</b> la alerta e interpreta el hecho.','<b>Crea la carta</b>: teléfono y calle; el sistema completa el resto.','<b>Mira la UT</b> en el campo Comuna.','<b>Irradia</b> por RugGear a la frecuencia de esa UT.'],tip:'Un cuadrante puede tener varias frecuencias: <b>manda la UT</b>.'},
@@ -206,7 +206,7 @@ const L=[
  {id:'tiempos',k:'Tiempos',t:'¿Cuándo empieza a correr?',x:()=>`<div class="chat" data-a><div class="bub">Hola, buenas tardes.<em>No cuenta</em></div><div class="bub go">Hay un señor mayor desorientado en la esquina…<em>Arranca el tiempo</em></div></div>`,o:['El saludo <b>no cuenta</b>.','El tiempo corre desde que el vecino <b>explica su situación</b>.','<b>1 minuto</b> la cabina · <b>1 a 3 minutos</b> hasta el móvil asignado.']},
  {id:'gracias',t:'¡Muchas gracias!',hide:true,pre:radar,x:()=>`<div class="big" data-a>¡Muchas<br><span>gracias!</span></div><div class="dir" data-a><small>Dirección Monitoreo</small>Cordobeses en Alerta</div><div class="pol" data-a>Policía de la Provincia de Córdoba · Ministerio de Seguridad</div><a class="descarga" data-a href="${encodeURI(PDF)}" download="${PDF}"><span class="ic2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span><span><b>Descargar el material</b><small>PDF · para guardar o compartir</small></span></a>`}
 ];
-const VER='2026-11-03a';   // misma versión que index.html
+const VER='2026-11-03b';   // misma versión que index.html
 const N=L.length, main=document.getElementById('main'), idx=document.getElementById('idx');
 let cur=0, dir=1, live=null, liveF=0, follow=true;
 idx.innerHTML=L.map((x,i)=>`<button><span>${String(i+1).padStart(2,'0')}</span>${x.t}</button>`).join('');
